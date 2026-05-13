@@ -46,25 +46,25 @@ Reglas:
 
 ### Feature branch: `chore/dev-tooling`
 
-- [ ] Backend:
-  - [ ] elegir herramientas de lint/format (ruff/black/isort) y fijar config
-  - [ ] agregar `pyproject.toml` con config de tooling
-  - [ ] definir estructura `backend/app/` (API, core, db, services, tasks)
-  - [ ] configurar `pytest` y carpeta `backend/tests/`
-- [ ] Frontend:
-  - [ ] inicializar Next.js (App Router o Pages; documentar decisión)
-  - [ ] configurar Tailwind
-  - [ ] integrar shadcn/ui
-  - [ ] configurar ESLint
-  - [ ] definir estructura `frontend/src/` (components, app, lib, hooks)
-- [ ] Scripts:
-  - [ ] agregar `scripts/` con comandos repetibles (backup, reindex, reset dev)
+- [x] ~~Backend:~~
+  - [x] ~~elegir herramientas de lint/format (ruff/black/isort) y fijar config~~ — `backend/pyproject.toml` (Ruff, Black, isort).
+  - [x] ~~agregar `pyproject.toml` con config de tooling~~ — mismo archivo + extras `dev` (pytest, pytest-asyncio).
+  - [x] ~~definir estructura `backend/app/` (API, core, db, services, tasks)~~ — paquetes vacíos documentados.
+  - [x] ~~configurar `pytest` y carpeta `backend/tests/`~~ — `tests/test_package_layout.py`, `pytest` en `pyproject`.
+- [x] ~~Frontend:~~
+  - [x] ~~inicializar Next.js (App Router o Pages; documentar decisión)~~ — Next 16 + **App Router** + `src/`; decisión en `frontend/README.md`.
+  - [x] ~~configurar Tailwind~~ — Tailwind 3 + tema shadcn en `tailwind.config.ts` y `globals.css`.
+  - [x] ~~integrar shadcn/ui~~ — `components.json`, `Button` en `src/components/ui/`, `cn` en `src/lib/utils.ts`.
+  - [x] ~~configurar ESLint~~ — flat config consumiendo `eslint-config-next/core-web-vitals`; script `npm run lint`.
+  - [x] ~~definir estructura `frontend/src/` (components, app, lib, hooks)~~ — `src/app`, `src/components`, `src/lib`, `src/hooks/`.
+- [x] ~~Scripts:~~
+  - [x] ~~agregar `scripts/` con comandos repetibles (backup, reindex, reset dev)~~ — `backup.sh`, `reindex.sh`, `reset-dev.sh` (stubs) + `scripts/README.md`.
 
 ### Feature branch: `docs/initial-docs-sync`
 
-- [ ] Revisar y alinear `README.md` y `docs/*.md` con la estructura final del repo
-- [ ] Crear plantilla de PR (si se decide) y convención de issues (opcional)
-- [ ] Definir estándares de respuesta del asistente (siempre en español) en un doc de producto (opcional)
+- [x] ~~Revisar y alinear `README.md` y `docs/*.md` con la estructura final del repo~~ — Árbol en README, desarrollo local vs Docker, índice `docs/README.md` y enlaces coherentes.
+- [x] ~~Crear plantilla de PR (si se decide) y convención de issues (opcional)~~ — `.github/pull_request_template.md` + `docs/16-github-issues.md` + referencias en `03-github-workflow.md`.
+- [x] ~~Definir estándares de respuesta del asistente (siempre en español) en un doc de producto (opcional)~~ — `docs/15-asistente-respuestas.md` enlazado desde README.
 
 ---
 

@@ -16,15 +16,37 @@ __pycache__/
 .venv/
 venv/
 ENV/
+.envrc
+
+# Pytest / coverage / runners
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
+.pytest_tmp/
+.tox/
+.nox/
+.hypothesis/
 htmlcov/
 .coverage
+.coverage.*
 coverage.xml
+*.cover
+junit.xml
+pytestdebug.log
+
+# Linters / type checkers / profilers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+.pyre/
+prof/
+
+# Builds & packaging
 *.egg-info/
+*.egg
 dist/
 build/
+pip-wheel-metadata/
 
 # Node / frontend
 node_modules/
@@ -32,10 +54,27 @@ node_modules/
 out/
 .turbo/
 *.tsbuildinfo
+.eslintcache
+.npm/
+.swc/
+node_modules/.cache/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Vitest / Playwright (frontend, cuando se configuren)
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Celery (workers)
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
 
 # Environment & secrets
 .env
