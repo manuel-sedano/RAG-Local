@@ -4,6 +4,8 @@ Objetivo: comprobar que el stack base arranca y que **solo Traefik** expone puer
 
 **Requisitos:** Docker Engine + Docker Compose v2, idealmente en **WSL2** (Ubuntu) como indica el README del proyecto.
 
+**Nota (dev tooling):** los servicios `frontend` y `backend` de este compose son **placeholders nginx**. La app **Next.js** real se prueba con `npm run dev` en `frontend/` (ver README, sección *Desarrollo local*).
+
 ---
 
 ## 1. Arranque base (sin perfiles opcionales)

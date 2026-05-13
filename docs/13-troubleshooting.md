@@ -128,6 +128,27 @@ Más contexto: `docs/01-deployment.md` §3 (Git en WSL con repo en `/mnt/c`).
 - Mueve el repo al filesystem Linux:
   - `~/projects/rag-local`
 
+### Síntoma: `error: externally-managed-environment` al usar `pip install` en Ubuntu
+
+**Causa:** Python del sistema está protegido (PEP 668); no se debe instalar paquetes de proyecto en el intérprete global.
+
+**Solución:** crear un entorno virtual en `backend/` (u otra ruta) y usar su `pip`:
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+Si falla `python3 -m venv`, instala `python3-venv` / `python3-full` (ver `docs/01-deployment.md`).
+
+### Síntoma: `npm` abre rutas `\\wsl.localhost\...` o escribe logs en `C:\Users\...` desde una terminal WSL
+
+**Causa:** estás usando el **npm de Windows** (p. ej. bajo `/mnt/c/nvm4w/...`) en lugar del npm del propio Linux.
+
+**Solución:** instala Node/npm en la distro (`sudo apt install npm` o **nvm/fnm dentro de WSL**). Comprueba `which npm` → debe ser una ruta bajo `/usr/...` o `~/.nvm/...`, no `/mnt/c/...`.
+
 ### Síntoma: WSL se queda sin memoria / el sistema se “congela”
 
 **Diagnóstico**
