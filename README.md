@@ -37,7 +37,7 @@ La documentación del repositorio cubre despliegue y operación con nivel de det
   - Recuperación vectorial + BM25 (híbrida)
   - Reranking con **FlashRank**
   - Respuesta en streaming (Socket.IO)
-  - **Citas/fuentes** por chunk y documento, con **enlaces en la UI** al documento original y a la **página** cuando el formato lo permite (PDF mediante `page_start`/`page_end` en ingesta; flujo en `rag-flow.md` §7.4–§9.4)
+  - **Citas/fuentes** por chunk y documento, con **enlaces en la UI** al documento original y a la **página** cuando el formato lo permite (PDF mediante `page_start`/`page_end` en ingesta; flujo en `docs/11-rag-flow.md` §7.4–§9.4)
   - Historial de chat por KB
   - Protección contra prompt injection y data exfiltration
 - **Plataforma / Operación**
@@ -116,7 +116,7 @@ Flujos clave:
 - **Upload → Parse → Chunk → Embed → Upsert Qdrant**
 - **Query → Hybrid retrieval → Rerank → Prompt safe → LLM streaming**
 
-Ampliación: `docs/architecture.md`, `docs/rag-flow.md`.
+Ampliación: `docs/05-architecture.md`, `docs/11-rag-flow.md`.
 
 ---
 
@@ -140,9 +140,9 @@ Ampliación: `docs/architecture.md`, `docs/rag-flow.md`.
 
 ## Instalación y arranque (alto nivel)
 
-1) Preparar WSL2 + Ubuntu 22.04 + Docker Desktop (`docs/deployment.md`).
+1) Preparar WSL2 + Ubuntu 22.04 + Docker Desktop (`docs/01-deployment.md`).
 2) Clonar repositorio en el filesystem de WSL o en una ruta accesible (cuidando performance).
-3) Crear `.env` a partir de `docs/env-example.md`.
+3) Crear `.env` a partir de `docs/04-env-example.md`.
 4) Ejecutar Docker Compose.
 5) Verificar:
    - Frontend: `http://localhost/` (o el host/puerto definido por Traefik)
@@ -150,13 +150,13 @@ Ampliación: `docs/architecture.md`, `docs/rag-flow.md`.
    - Qdrant: `http://localhost/qdrant` (si se expone)
    - Grafana/Prometheus: `http://localhost/grafana` (si se expone)
 
-Procedimiento detallado: `docs/deployment.md`.
+Procedimiento detallado: `docs/01-deployment.md`.
 
 ---
 
 ## Variables de entorno
 
-- Plantilla comentada: `docs/env-example.md`.
+- Plantilla comentada: `docs/04-env-example.md`.
 - El archivo `.env` permanece fuera del control de versiones.
 
 ---
@@ -179,14 +179,14 @@ project/
 └── README.md
 ```
 
-**Estado del repositorio:** documentación y planificación; `docker-compose.yml` base con placeholders (Traefik, servicios de datos, worker con volumen de uploads). Código de aplicación en `frontend/`, `backend/`, etc., según `docs/todo.md`.
+**Estado del repositorio:** documentación y planificación; `docker-compose.yml` base con placeholders (Traefik, servicios de datos, worker con volumen de uploads). Código de aplicación en `frontend/`, `backend/`, etc., según `docs/08-todo.md`.
 
 ---
 
 ## Roadmap
 
-- Ver `docs/features-roadmap.md` para fases y prioridades.
-- Ver `docs/todo.md` para un desglose extremadamente detallado por feature branch.
+- Ver `docs/07-features-roadmap.md` para fases y prioridades.
+- Ver `docs/08-todo.md` para un desglose extremadamente detallado por feature branch.
 
 ---
 
@@ -198,25 +198,26 @@ project/
 - **Prompt injection**: reglas de “system prompt” y validación/filtrado de contexto recuperado.
 - **JWT**: expiración corta para access, refresh rotatorio, revocación.
 
-Detalles completos en `docs/security.md`.
+Detalles completos en `docs/12-security.md`.
 
 ---
 
 ## Documentación del proyecto
 
-La documentación vive en `docs/`:
+La documentación vive en `docs/`. **Empieza por** `docs/README.md` (orden de lectura) y luego:
 
-- `docs/technologies.md`
-- `docs/architecture.md`
-- `docs/deployment.md`
-- `docs/api-spec.md`
-- `docs/database-schema.md`
-- `docs/rag-flow.md`
-- `docs/security.md`
-- `docs/env-example.md`
-- `docs/github-workflow.md`
-- `docs/features-roadmap.md`
-- `docs/troubleshooting.md`
-- `docs/smoke-test.md`
-- `docs/todo.md`
+- `docs/01-deployment.md`
+- `docs/02-smoke-test.md`
+- `docs/03-github-workflow.md`
+- `docs/04-env-example.md`
+- `docs/05-architecture.md`
+- `docs/06-technologies.md`
+- `docs/07-features-roadmap.md`
+- `docs/08-todo.md`
+- `docs/09-api-spec.md`
+- `docs/10-database-schema.md`
+- `docs/11-rag-flow.md`
+- `docs/12-security.md`
+- `docs/13-troubleshooting.md`
+- `docs/14-comercializacion-mvp-precios.md`
 

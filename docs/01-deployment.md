@@ -109,26 +109,86 @@ Si falla, revisa:
 
 ---
 
-## 4) Clonar el repositorio
+## 4) Ubicación del repositorio (clon o ruta actual)
 
-### Recomendación de ubicación
+### 4a) Recomendado: clonar en filesystem Linux (`~/...`)
 
-Para mejor performance, clona dentro del filesystem Linux (WSL), por ejemplo:
+Mejor rendimiento (menos latencia que `/mnt/c/...`, especialmente con `node_modules`, watchers y builds):
 
 ```bash
 mkdir -p ~/projects && cd ~/projects
-git clone <TU_URL_DEL_REPO> rag-local
+git clone <URL_DEL_REPO> rag-local
 cd rag-local
+git checkout develop
+git pull origin develop
 ```
 
-Rutas montadas desde Windows (`/mnt/c/...`): mayor latencia en `node_modules`, watchers e I/O frecuente; el filesystem nativo de WSL reduce el problema.
+Sustituye `<URL_DEL_REPO>` por la URL HTTPS o SSH del remoto (la misma que usarías en GitHub).
+
+### 4b) Si ya estás en WSL bajo `/mnt/c/...` (OneDrive o disco Windows)
+
+Es válido para arrancar Docker Compose; el proyecto documenta que **I/O y sincronización** (OneDrive) pueden hacer más lentos builds y Git. Para trabajo diario, preferir **4c** cuando puedas.
+
+Desde tu ruta actual (ajusta si tu usuario o carpeta difieren):
+
+```bash
+cd "/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local"
+
+git fetch origin
+git checkout develop
+git pull origin develop
+
+mkdir -p uploads
+
+docker compose up -d --build
+docker compose ps
+```
+
+Comprobaciones rápidas (mismo criterio que `docs/02-smoke-test.md`):
+
+```bash
+curl -fsS http://localhost/health
+curl -fsS http://localhost/api/health
+docker compose exec postgres pg_isready -U rag -d rag
+docker compose exec redis redis-cli ping
+```
+
+**`.env`:** con el **bootstrap** actual (placeholders), el `docker-compose.yml` trae valores de demo en servicios; no es obligatorio un `.env` solo para levantar el stack. Cuando exista backend real, crea `.env` en la raíz siguiendo `docs/04-env-example.md` (el archivo `.env` no se versiona).
+
+### 4c) Migración recomendada desde `/mnt/c/` a `~/projects/` (misma máquina)
+
+En el repo “viejo” obtén la URL del remoto:
+
+```bash
+cd "/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local"
+git remote -v
+```
+
+En una ruta bajo Linux (ext4):
+
+```bash
+mkdir -p ~/projects && cd ~/projects
+git clone <URL_QUE_COPIASTE> rag-local
+cd rag-local
+git checkout develop
+git pull origin develop
+```
+
+Si ya tenías un `.env` en la ruta de Windows, cópialo (no lo subas a Git):
+
+```bash
+cp "/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local/.env" ~/projects/rag-local/.env
+# solo si el archivo existía
+```
+
+Luego trabaja siempre desde `~/projects/rag-local` para `git` y `docker compose`.
 
 ---
 
 ## 5) Preparar variables de entorno
 
 1. Archivo `.env` en la raíz del repositorio.
-2. Valores de partida en `env-example.md`.
+2. Valores de partida en `04-env-example.md`.
 3. Variables típicas:
    - secretos JWT
    - credenciales de Postgres
@@ -191,42 +251,46 @@ docker compose down -v
 
 ## 8) Verificación (smoke tests)
 
-### 8.1 Frontend
+La lista canónica de comandos está en **`docs/02-smoke-test.md`**. Resumen alineado al stack actual:
 
-- Abre la URL local publicada por Traefik (por defecto):
-  - `http://localhost/`
+### 8.1 Frontend (Traefik → servicio `frontend`)
 
-### 8.2 Backend
+- Navegador: `http://localhost/`
+- Salud: `curl -fsS http://localhost/health` → cuerpo `ok`
 
-Endpoint de salud:
+### 8.2 Backend placeholder
 
-- `GET /api/health`
+- `curl -fsS http://localhost/api/health` → JSON con `"status":"ok"` (sin comprobar aún dependencias; eso vendrá con el backend FastAPI).
 
-Esperado:
+### 8.3 Qdrant (solo red interna en el bootstrap)
 
-- `200 OK` con JSON indicando estado de dependencias (Postgres/Redis/Qdrant/Ollama).
-
-### 8.3 Qdrant
-
-Si se expone (opcional):
-
-- `GET /qdrant/` o `http://localhost:6333/`
-
-### 8.4 Ollama
-
-Verifica que el contenedor esté arriba y que el modelo esté disponible.
-
-Comando típico (dependiendo de cómo se integre):
+No hay puerto `6333` publicado al host. Desde un contenedor en `rag_net`:
 
 ```bash
-curl -s http://localhost:11434/api/tags | jq
+docker compose exec backend wget -qO- http://qdrant:6333/ready
 ```
 
-### 8.5 Observabilidad (opcional)
+### 8.4 Ollama (solo red interna en el bootstrap)
 
-- Grafana: `http://localhost/grafana`
-- Prometheus: `http://localhost/prometheus`
-- Loki: `http://localhost/loki`
+`localhost:11434` no está mapeado al host. Ejemplo:
+
+```bash
+docker compose exec backend wget -qO- http://ollama:11434/api/tags
+```
+
+(Cuando tengas modelos descargados, verás entradas en `models`.)
+
+### 8.5 Observabilidad (perfil `observability`)
+
+Levantar antes:
+
+```bash
+docker compose --profile observability up -d
+```
+
+- Grafana: `http://localhost/grafana/` (credenciales por defecto del compose; cámbialas fuera de entornos locales).
+- Prometheus: `http://localhost/prometheus/` (UI detrás de Traefik).
+- Loki: comprobar readiness por red interna (ver `docs/02-smoke-test.md`).
 
 ---
 
@@ -269,6 +333,6 @@ Los identificadores de modelo (`qwen2.5:7b-instruct`, etc.) dependen del catálo
 
 ## 12) Troubleshooting rápido (enlaces)
 
-- Docker/WSL2: `troubleshooting.md`
-- Seguridad, WAF, uploads: `security.md`
+- Docker/WSL2: `13-troubleshooting.md`
+- Seguridad, WAF, uploads: `12-security.md`
 

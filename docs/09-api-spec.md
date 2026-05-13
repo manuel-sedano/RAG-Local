@@ -372,7 +372,7 @@ Descarga u ofrece en línea el **archivo original** almacenado para el documento
 - `404` documento inexistente o eliminado
 - `409` documento en cuarentena / no listo para servir (según política)
 
-**Citas RAG:** `file_path` referencia esta ruta API; las rutas del volumen de almacenamiento no forman parte del contrato con el cliente. Autenticación: mismo JWT que el resto de la API. Apertura sin cabecera `Authorization`: URLs firmadas de corta duración (`security.md` §7.3).
+**Citas RAG:** `file_path` referencia esta ruta API; las rutas del volumen de almacenamiento no forman parte del contrato con el cliente. Autenticación: mismo JWT que el resto de la API. Apertura sin cabecera `Authorization`: URLs firmadas de corta duración (`12-security.md` §7.3).
 
 ---
 

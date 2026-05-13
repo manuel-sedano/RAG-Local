@@ -42,7 +42,7 @@ docker compose logs -f --tail=200
 
 **Solución**
 
-- Verifica `.env` con `docs/env-example.md`
+- Verifica `.env` con `docs/04-env-example.md`
 - Cambia puertos expuestos en `docker-compose.yml` si hay conflicto
 - Si estás en dev y puedes resetear (destructivo):
 
