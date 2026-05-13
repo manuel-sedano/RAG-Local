@@ -259,7 +259,7 @@ Ejemplo de respuesta deseada (en español):
 
 ### 7.4 Enlaces a documento y página (UI y API)
 
-Los enlaces por cita se apoyan en: metadatos de ingesta (`document_id`, `page_start` / `page_end` en `chunks`, `database-schema.md`), transmisión del binario por HTTP autenticado (`api-spec.md`, `GET .../documents/{id}/file`) y ruta de aplicación que inicializa el visor en la página indicada. Operación posible sin object storage externo.
+Los enlaces por cita se apoyan en: metadatos de ingesta (`document_id`, `page_start` / `page_end` en `chunks`, `10-database-schema.md`), transmisión del binario por HTTP autenticado (`09-api-spec.md`, `GET .../documents/{id}/file`) y ruta de aplicación que inicializa el visor en la página indicada. Operación posible sin object storage externo.
 
 | Formato | Enlace a documento | Enlace / salto a página | Notas |
 |---------|-------------------|-------------------------|--------|
@@ -273,8 +273,8 @@ Los enlaces por cita se apoyan en: metadatos de ingesta (`document_id`, `page_st
 2. **Payload hacia el cliente:** además de `document_id`, `chunk_id`, `score` y rango de página, se envían rutas relativas para hipervínculos:
    - `viewer_path`: ruta de aplicación (p. ej. `/kbs/{kb_id}/documents/{document_id}?page=3`); acceso tras autenticación, sin URL anónima al volumen.
    - `file_path`: ruta API del binario (`/api/kbs/{kb_id}/documents/{document_id}/file`); peticiones con **Authorization: Bearer**; sin JWT fijo en query string.
-3. **Markdown:** enlaces permitidos solo si el backend inyecta la URL o un `citation_ref` que el frontend resuelve; lista blanca de `href` y bloqueo de `javascript:` en `security.md` §8.
-4. **URLs firmadas:** `/file?sig=...&exp=...` de corta duración como variante en `security.md` §7.3.
+3. **Markdown:** enlaces permitidos solo si el backend inyecta la URL o un `citation_ref` que el frontend resuelve; lista blanca de `href` y bloqueo de `javascript:` en `12-security.md` §8.
+4. **URLs firmadas:** `/file?sig=...&exp=...` de corta duración como variante en `12-security.md` §7.3.
 5. **Múltiples archivos:** el contexto puede mezclar chunks de varios documentos de una KB (filtro `kb_id`). El arreglo `citations` lleva una entrada por fuente usada (o por deduplicación top-M por documento, según política). Cada elemento tiene `document_id`, `viewer_path` y `file_path` propios.
 
 ### 7.5 Dónde se almacenan los documentos (binarios vs metadatos)
@@ -376,7 +376,7 @@ Render Markdown:
 4. **Render:** PDF → **PDF.js** sobre blob/arrayBuffer, vista en la página indicada; DOCX/TXT → descarga o vista simplificada; salto a página en DOCX no garantizado sin PDF (§7.4).
 5. **Descarga:** `file_path` con `disposition=attachment` si el API lo expone, o blob en cliente tras `fetch` autenticado.
 
-**Exposición:** sin URL anónima al archivo; acceso bajo sesión autenticada o URL firmada de vida corta (`security.md` §7.3).
+**Exposición:** sin URL anónima al archivo; acceso bajo sesión autenticada o URL firmada de vida corta (`12-security.md` §7.3).
 
 ---
 

@@ -6,6 +6,20 @@
 
 ## 1) Problemas con Docker Desktop / Docker Compose
 
+### Síntoma: `The command 'docker' could not be found in this WSL 2 distro`
+
+**Causa:** Docker Desktop está en Windows pero **no está la integración WSL** activada para tu distro Ubuntu, o Docker Desktop no está en ejecución.
+
+**Solución (resumen)**
+
+1. Abre **Docker Desktop** en Windows.
+2. **Settings → General**: “Use the WSL 2 based engine” activado.
+3. **Settings → Resources → WSL integration**: activa tu distro (p. ej. Ubuntu).
+4. En PowerShell: `wsl --shutdown` → reinicia Docker Desktop → abre de nuevo la terminal WSL.
+5. En WSL: `docker version` y `docker compose version`.
+
+Detalle paso a paso: `docs/01-deployment.md` §3.
+
 ### Síntoma: `docker: Cannot connect to the Docker daemon`
 
 **Causas comunes**
@@ -22,6 +36,29 @@
 - Reinicia:
   - `wsl --shutdown`
   - reinicia Docker Desktop
+
+### Síntoma: `429 Too Many Requests` / `toomanyrequests` al hacer `docker compose build` o `docker pull`
+
+**Causa:** Docker Hub limita descargas **anónimas** por dirección IP (y a veces por ventana de tiempo). Al cambiar de tag de imagen (`nginx:stable-alpine`, etc.) el motor pide un **manifest nuevo** y cuenta como pull.
+
+**Solución (recomendada)**
+
+1. Crea una cuenta gratuita en [Docker Hub](https://hub.docker.com/) si no tienes.
+2. En **WSL** (o PowerShell, con el mismo Docker Desktop):
+
+   ```bash
+   docker login
+   ```
+
+   Usa tu usuario de Hub y, si te lo pide, un **Personal Access Token** como contraseña (mejor que la contraseña de la web).
+
+3. Repite el build:
+
+   ```bash
+   docker compose build --pull frontend backend
+   ```
+
+**Alternativas:** esperar a que caduque la ventana del límite; usar otra red (otra IP); en equipos de empresa, un **registry mirror** o política de IT. Más información: [Increase rate limits](https://www.docker.com/increase-rate-limit).
 
 ### Síntoma: Contenedores “Restarting” continuamente
 
@@ -42,7 +79,7 @@ docker compose logs -f --tail=200
 
 **Solución**
 
-- Verifica `.env` con `docs/env-example.md`
+- Verifica `.env` con `docs/04-env-example.md`
 - Cambia puertos expuestos en `docker-compose.yml` si hay conflicto
 - Si estás en dev y puedes resetear (destructivo):
 
@@ -54,6 +91,31 @@ docker compose up -d
 ---
 
 ## 2) Problemas WSL2
+
+### Síntoma: Git `fatal: detected dubious ownership in repository at '/mnt/c/...'`
+
+**Causa:** el repositorio vive en NTFS montado como `/mnt/c/...` y el UID/GID de Windows no coincide con tu usuario Linux; Git 2.35+ trata el directorio como no confiable.
+
+**Solución:** marcar el directorio como seguro (ajusta la ruta a tu repo):
+
+```bash
+git config --global --add safe.directory '/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local'
+```
+
+Más contexto: `docs/01-deployment.md` §3 (Git en WSL con repo en `/mnt/c`).
+
+### Síntoma: `curl http://localhost/health` devuelve 404 con el stack “supuestamente” arriba
+
+**Causas comunes**
+
+- **Docker no corre en WSL** (sin `docker compose up`): no hay Traefik del proyecto escuchando en el 80; otro programa en Windows puede responder con 404.
+- El stack no está levantado: comprueba en Windows `docker compose ps` desde la misma carpeta del proyecto **o** en WSL tras arreglar la integración.
+
+**Solución**
+
+1. Arregla Docker en WSL (apartado anterior) y ejecuta `docker compose up -d --build` desde la raíz del repo.
+2. `docker compose ps` → `traefik` y `frontend` en estado `running`.
+3. Repite `curl -fsS http://localhost/health` (desde WSL o PowerShell; en WSL, `localhost` suele reenviarse al mismo host que Docker Desktop).
 
 ### Síntoma: Lentitud extrema al instalar dependencias (node_modules, pip)
 

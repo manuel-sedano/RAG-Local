@@ -274,7 +274,7 @@ Exclusión típica de la salida al cliente:
 ### 7.3 Descarga y visualización de documentos citados (auth)
 
 - Archivos subidos: sin URL estática pública ni rutas de disco predecibles sin sesión.
-- Acceso al binario: **`GET /api/kbs/{kb_id}/documents/{doc_id}/file`** con **JWT** y comprobación de membresía en la KB (`api-spec.md`).
+- Acceso al binario: **`GET /api/kbs/{kb_id}/documents/{doc_id}/file`** con **JWT** y comprobación de membresía en la KB (`09-api-spec.md`).
 - Hipervínculos en el chat: **rutas internas** (`viewer_path`) → visor (p. ej. PDF.js) y obtención del PDF con el token de la SPA (`fetch` + blob/stream); sin enlaces anónimos al binario.
 - **Opcional (hardening):** URLs firmadas de muy corta duración (`sig` + `exp`) solo si se requiere abrir el archivo en una pestaña sin cabecera `Authorization`; rotar clave de firma y registrar auditoría de emisión.
 

@@ -42,7 +42,7 @@ Reglas:
   - [x] ~~Qdrant~~ — `rag_vol_qdrant`
   - [x] ~~Ollama models~~ — `rag_vol_ollama`
   - [x] ~~uploads~~ — `rag_vol_uploads` (montado en `worker`)
-- [x] ~~Documentar “smoke test” mínimo (health endpoints y verificación)~~ — `docs/smoke-test.md`
+- [x] ~~Documentar “smoke test” mínimo (health endpoints y verificación)~~ — `docs/02-smoke-test.md`
 
 ### Feature branch: `chore/dev-tooling`
 
@@ -152,7 +152,7 @@ Reglas:
   - [ ] integration tests login/refresh/logout
   - [ ] tests de lockout/rate limit (básicos)
 - [ ] Docs:
-  - [ ] confirmar que `docs/api-spec.md` coincide con implementación real
+  - [ ] confirmar que `docs/09-api-spec.md` coincide con implementación real
 
 ---
 
@@ -448,7 +448,7 @@ Reglas:
 - [ ] Citas:
   - [ ] backend asigna citas basadas en chunks usados
   - [ ] persistir `message_citations` (`page_start` / `page_end` alineados con `chunks`)
-  - [ ] en respuesta API y evento `chat:citation`: incluir `viewer_path`, `file_path`, `filename_original`, `mime_type` (derivados en servidor; forma en `api-spec.md`)
+  - [ ] en respuesta API y evento `chat:citation`: incluir `viewer_path`, `file_path`, `filename_original`, `mime_type` (derivados en servidor; forma en `09-api-spec.md`)
 - [ ] Endpoint:
   - [ ] `POST /api/kbs/{kb_id}/chats/{chat_id}/messages`
 - [ ] Tests:
@@ -666,7 +666,7 @@ Reglas:
   - [ ] endpoints principales (auth, KB, upload, chat)
   - [ ] pipeline Celery básico (con mocks o infraestructura)
 - [ ] Contract tests:
-  - [ ] asegurar que responses cumplen `api-spec`
+  - [ ] asegurar que responses cumplen `09-api-spec.md`
 
 ## Feature: frontend testing
 
@@ -701,11 +701,11 @@ Reglas:
 ### Feature branch: `docs/finalize`
 
 - [ ] Validar que docs reflejan implementación real:
-  - [ ] `docs/api-spec.md`
-  - [ ] `docs/database-schema.md`
-  - [ ] `docs/rag-flow.md`
-  - [ ] `docs/security.md`
-  - [ ] `docs/deployment.md`
+  - [ ] `docs/09-api-spec.md`
+  - [ ] `docs/10-database-schema.md`
+  - [ ] `docs/11-rag-flow.md`
+  - [ ] `docs/12-security.md`
+  - [ ] `docs/01-deployment.md`
 - [ ] Agregar ejemplos reales (capturas/logs) cuando exista implementación
 - [ ] Agregar “operational playbooks” (incidentes comunes)
 

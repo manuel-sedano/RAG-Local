@@ -230,7 +230,7 @@ Citas por mensaje del asistente.
 | snippet | text nullable | |
 | created_at | timestamptz | |
 
-Los campos `viewer_path` y `file_path` de la API **no** se almacenan en esta tabla: se calculan al serializar la respuesta a partir de `document_id`, `kb_id` del chat y `page_start` (contrato en `api-spec.md`).
+Los campos `viewer_path` y `file_path` de la API **no** se almacenan en esta tabla: se calculan al serializar la respuesta a partir de `document_id`, `kb_id` del chat y `page_start` (contrato en `09-api-spec.md`).
 
 ## Tabla: `rate_limit_events` (opcional)
 

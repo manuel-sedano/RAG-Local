@@ -216,8 +216,8 @@ Recomendación:
 4. Persistencia:
    - mensaje del usuario
    - respuesta final
-   - lista de fuentes/citas (`document_id`, `chunk_id`, `score`, `page_start`/`page_end`, más rutas API resueltas: `viewer_path`, `file_path`; forma del objeto en `api-spec.md`)
-5. **Enlaces a fuentes:** hipervínculos a `viewer_path` con `page` para PDF (**PDF.js**); descarga opcional con `GET .../documents/{id}/file` autenticado. Formatos en `rag-flow.md` §7.4.
+   - lista de fuentes/citas (`document_id`, `chunk_id`, `score`, `page_start`/`page_end`, más rutas API resueltas: `viewer_path`, `file_path`; forma del objeto en `09-api-spec.md`)
+5. **Enlaces a fuentes:** hipervínculos a `viewer_path` con `page` para PDF (**PDF.js**); descarga opcional con `GET .../documents/{id}/file` autenticado. Formatos en `11-rag-flow.md` §7.4.
 
 ## 5) Flujo de networking (Networking flow)
 
@@ -261,5 +261,5 @@ Recomendación:
 - Validar y sanear todo input (WAF + validación app).
 - Antivirus antes de parsing.
 - Minimizar superficie: rutas internas, network privado, y headers estrictos.
-- Guardrails RAG: `security.md`, `rag-flow.md`.
+- Guardrails RAG: `12-security.md`, `11-rag-flow.md`.
 
