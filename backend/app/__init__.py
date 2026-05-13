@@ -1,1 +1,1 @@
-"""Paquete principal de la aplicación backend (FastAPI en fases posteriores)."""
+"""Paquete raíz de la aplicación FastAPI (estructura reservada en dev-tooling)."""

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Respaldo Postgres + uploads (stub; ampliar en fases con pg_dump y paths reales).
 set -euo pipefail
-echo "[backup] TODO: pg_dump + copia de volumen uploads cuando exista backend operativo."
+echo "backup.sh: stub — implementar pg_dump + archivo de uploads"
 exit 0

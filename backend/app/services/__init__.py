@@ -1,1 +1,1 @@
-"""Lógica de negocio desacoplada de HTTP."""
+"""Lógica de negocio."""

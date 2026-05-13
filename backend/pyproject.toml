@@ -1,53 +1,52 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "rag-local-backend"
 version = "0.1.0"
-description = "API y workers RAG local (FastAPI en fases posteriores)"
+description = "Backend API y workers (FastAPI) — dev tooling en chore/dev-tooling."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.24",
-    "ruff>=0.8.0",
-    "black>=24.10.0",
-    "isort>=5.13.0",
+  "black>=24.10",
+  "isort>=5.13",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
 ]
-
-[build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*"]
-
-[tool.ruff]
-target-version = "py311"
-line-length = 100
-src = ["app", "tests"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["app"]
+include = ["app"]
 
 [tool.black]
 line-length = 100
-target-version = ["py311"]
-extend-exclude = "/(\\.venv|venv|build|dist)/"
+target-version = ["py312"]
+extend-exclude = "(\\.venv|venv|build|dist)/"
 
 [tool.isort]
 profile = "black"
 line_length = 100
-known_first_party = ["app"]
 skip_gitignore = true
+known_first_party = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
 asyncio_mode = "auto"
-addopts = "-q"
+pythonpath = ["."]

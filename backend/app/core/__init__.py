@@ -1,1 +1,1 @@
-"""Configuración, logging y utilidades transversales."""
+"""Configuración y utilidades transversales."""

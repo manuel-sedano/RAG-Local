@@ -1,1 +1,1 @@
-"""Rutas HTTP / WebSocket."""
+"""Rutas HTTP y WebSocket."""
