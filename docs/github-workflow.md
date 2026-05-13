@@ -20,11 +20,14 @@ Modelo recomendado: **trunk-based con feature branches cortas**.
 - `main`:
   - siempre estable
   - protegido (requiere PR + checks)
-- `dev` (opcional):
-  - integración si el equipo prefiere un “staging” local
-  - si se usa, releases se cortan desde `main`
+  - recibe cambios ya validados (p. ej. promoción desde `develop`)
+- `develop`:
+  - integración para probar el conjunto de cambios antes de llevarlos a `main`
+  - **Todas las ramas de trabajo** (`feat/*`, `chore/*`, `fix/*`, `docs/*`, `test/*`, `perf/*`, etc.) **se crean a partir de `develop`**
+  - los PR de features y tareas habituales apuntan a `develop`
+  - releases versionadas y tags siguen cortándose desde `main` cuando el criterio de release lo indique
 
-Ramas por feature:
+Ramas por feature (ejemplos; todas ramifican desde `develop`):
 
 - `feat/auth-jwt`
 - `feat/kb-crud`
@@ -125,12 +128,13 @@ Ejemplos:
 
 ## Flujo de feature (feature workflow)
 
-1. Crear rama desde `main`:
-   - `git checkout -b feat/<feature>`
+1. Crear rama desde `develop` (igual para `feat/*`, `chore/*`, `fix/*`, `docs/*`, etc.):
+   - `git checkout develop && git pull origin develop`
+   - `git checkout -b feat/<feature>` (o `chore/...`, `fix/...`, según corresponda)
 2. Hacer commits pequeños y coherentes.
 3. Mantener rama actualizada:
    - `git fetch origin`
-   - `git rebase origin/main` (o merge según política)
+   - `git rebase origin/develop` (o merge según política)
 4. Abrir PR temprano (Draft) si es grande.
 5. Asegurar checks verdes.
 6. Merge:
@@ -186,7 +190,7 @@ Checks sugeridos:
 
 ## Políticas de protección de rama (branch protection)
 
-Para `main`:
+Para `main` y, si aplica, `develop`:
 
 - Require PR before merging
 - Require status checks to pass

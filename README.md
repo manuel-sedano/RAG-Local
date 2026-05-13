@@ -179,7 +179,7 @@ project/
 └── README.md
 ```
 
-**Estado del repositorio:** documentación y planificación; implementación de código en `frontend/`, `backend/`, etc., según `docs/todo.md`.
+**Estado del repositorio:** documentación y planificación; `docker-compose.yml` base con placeholders (Traefik, servicios de datos, worker con volumen de uploads). Código de aplicación en `frontend/`, `backend/`, etc., según `docs/todo.md`.
 
 ---
 
@@ -217,5 +217,6 @@ La documentación vive en `docs/`:
 - `docs/github-workflow.md`
 - `docs/features-roadmap.md`
 - `docs/troubleshooting.md`
+- `docs/smoke-test.md`
 - `docs/todo.md`
 

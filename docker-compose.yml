@@ -1,0 +1,192 @@
+# Ver `docker/CONVENTIONS.md` para nombres de red, volúmenes y perfiles opcionales.
+
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: rag_traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+    networks:
+      - rag_net
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+
+  frontend:
+    build:
+      context: ./docker/placeholders/frontend
+    container_name: rag_frontend
+    restart: unless-stopped
+    networks:
+      - rag_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=rag_net
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.priority=1
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+
+  backend:
+    build:
+      context: ./docker/placeholders/backend
+    container_name: rag_backend
+    restart: unless-stopped
+    networks:
+      - rag_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=rag_net
+      - traefik.http.routers.backend.rule=PathPrefix(`/api`)
+      - traefik.http.routers.backend.entrypoints=web
+      - traefik.http.routers.backend.priority=100
+      - traefik.http.services.backend.loadbalancer.server.port=80
+
+  worker:
+    build:
+      context: ./docker/placeholders/worker
+    container_name: rag_worker
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - rag_vol_uploads:/uploads
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: rag_postgres
+    restart: unless-stopped
+    networks:
+      - rag_net
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag_local_dev
+      POSTGRES_DB: rag
+    volumes:
+      - rag_vol_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag_redis
+    restart: unless-stopped
+    networks:
+      - rag_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: rag_qdrant
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - rag_vol_qdrant:/qdrant/storage
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag_ollama
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - rag_vol_ollama:/root/.ollama
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: rag_clamav
+    profiles:
+      - clamav
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - rag_vol_clamav:/var/lib/clamav
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: rag_prometheus
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - ./docker/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+      - --web.external-url=http://localhost/prometheus/
+      - --web.route-prefix=/prometheus/
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=rag_net
+      - traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`)
+      - traefik.http.routers.prometheus.entrypoints=web
+      - traefik.http.middlewares.prometheus-strip.stripprefix.prefixes=/prometheus
+      - traefik.http.routers.prometheus.middlewares=prometheus-strip
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: rag_grafana
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin_local_dev
+      GF_SERVER_ROOT_URL: http://localhost/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - rag_vol_grafana:/var/lib/grafana
+      - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - loki
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=rag_net
+      - traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)
+      - traefik.http.routers.grafana.entrypoints=web
+      - traefik.http.middlewares.grafana-strip.stripprefix.prefixes=/grafana
+      - traefik.http.routers.grafana.middlewares=grafana-strip
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: rag_loki
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+
+networks:
+  rag_net:
+    name: rag_net
+    driver: bridge
+
+volumes:
+  rag_vol_postgres:
+  rag_vol_qdrant:
+  rag_vol_ollama:
+  rag_vol_uploads:
+  rag_vol_clamav:
+  rag_vol_grafana:
