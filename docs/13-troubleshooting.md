@@ -37,6 +37,29 @@ Detalle paso a paso: `docs/01-deployment.md` §3.
   - `wsl --shutdown`
   - reinicia Docker Desktop
 
+### Síntoma: `429 Too Many Requests` / `toomanyrequests` al hacer `docker compose build` o `docker pull`
+
+**Causa:** Docker Hub limita descargas **anónimas** por dirección IP (y a veces por ventana de tiempo). Al cambiar de tag de imagen (`nginx:stable-alpine`, etc.) el motor pide un **manifest nuevo** y cuenta como pull.
+
+**Solución (recomendada)**
+
+1. Crea una cuenta gratuita en [Docker Hub](https://hub.docker.com/) si no tienes.
+2. En **WSL** (o PowerShell, con el mismo Docker Desktop):
+
+   ```bash
+   docker login
+   ```
+
+   Usa tu usuario de Hub y, si te lo pide, un **Personal Access Token** como contraseña (mejor que la contraseña de la web).
+
+3. Repite el build:
+
+   ```bash
+   docker compose build --pull frontend backend
+   ```
+
+**Alternativas:** esperar a que caduque la ventana del límite; usar otra red (otra IP); en equipos de empresa, un **registry mirror** o política de IT. Más información: [Increase rate limits](https://www.docker.com/increase-rate-limit).
+
 ### Síntoma: Contenedores “Restarting” continuamente
 
 **Diagnóstico**
