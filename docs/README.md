@@ -38,6 +38,15 @@ Los archivos numerados reflejan el **orden de lectura recomendado**. Este `READM
 
 ---
 
+## Producto y colaboración en GitHub
+
+15. **`15-asistente-respuestas.md`** — Estándares de tono y lenguaje del asistente conversacional (español).
+16. **`16-github-issues.md`** — Etiquetas sugeridas, títulos y cuándo abrir issue vs PR.
+
+La **plantilla de Pull Request** aplicada por GitHub está en `.github/pull_request_template.md` (rellenar al crear el PR).
+
+---
+
 ## Resumen rápido “solo arrancar”
 
 `01-deployment.md` → `02-smoke-test.md` → (opcional) `03-github-workflow.md` + `04-env-example.md`.

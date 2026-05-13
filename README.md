@@ -37,7 +37,7 @@ La documentación del repositorio cubre despliegue y operación con nivel de det
   - Recuperación vectorial + BM25 (híbrida)
   - Reranking con **FlashRank**
   - Respuesta en streaming (Socket.IO)
-  - **Citas/fuentes** por chunk y documento, con **enlaces en la UI** al documento original y a la **página** cuando el formato lo permite (PDF mediante `page_start`/`page_end` en ingesta; flujo en `docs/11-rag-flow.md` §7.4–§9.4)
+  - **Citas/fuentes** por chunk y documento, con **enlaces en la UI** al documento original y a la **página** cuando el formato lo permite (PDF mediante `page_start`/`page_end` en ingesta; flujo en `docs/11-rag-flow.md` §7.4–§9.4; tono del asistente en `docs/15-asistente-respuestas.md`)
   - Historial de chat por KB
   - Protección contra prompt injection y data exfiltration
 - **Plataforma / Operación**
@@ -152,6 +152,27 @@ Ampliación: `docs/05-architecture.md`, `docs/11-rag-flow.md`.
 
 Procedimiento detallado: `docs/01-deployment.md`.
 
+### Desarrollo local (código real vs placeholders Docker)
+
+- **Docker Compose** sigue construyendo **placeholders** (`docker/placeholders/frontend` y `…/backend`): sirve para smoke test de infra; **no** empaqueta aún el Next.js de `frontend/` ni FastAPI en `backend/app/`.
+- **Frontend (Next.js):** en WSL, usa **Node/npm de Linux** (`which npm` no debe apuntar a `/mnt/c/...`). Desde la raíz del repo:
+
+  ```bash
+  cd frontend && npm install && npm run dev
+  ```
+
+  → `http://localhost:3000`.
+
+- **Backend (tooling + layout):** entorno virtual recomendado (PEP 668 en Ubuntu); desde `backend/`:
+
+  ```bash
+  python3 -m venv .venv && source .venv/bin/activate
+  pip install -e ".[dev]"
+  pytest && ruff check app tests
+  ```
+
+  La aplicación FastAPI ejecutable llegará en `feat/backend-core`.
+
 ---
 
 ## Variables de entorno
@@ -167,13 +188,24 @@ Estructura objetivo (GitHub-ready):
 
 ```text
 project/
-├── frontend/
-├── backend/
-├── docker/
-├── uploads/
-├── docs/
-├── scripts/
-├── .env
+├── frontend/          # Next.js 16 (App Router, `src/`). `npm run dev` en dev local.
+│   ├── src/app/
+│   ├── src/components/
+│   ├── src/lib/
+│   └── src/hooks/
+├── backend/           # Paquete Python `app/` + pytest; FastAPI en fases posteriores.
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── db/
+│   │   ├── services/
+│   │   └── tasks/
+│   └── tests/
+├── docker/            # Traefik, placeholders de build, observabilidad, etc.
+├── uploads/           # Datos de usuario (`.gitkeep`; contenido ignorado).
+├── docs/              # Índice: `docs/README.md`
+├── scripts/           # Stubs bash: backup, reindex, reset-dev.
+├── .env               # No versionado; plantilla mental en `docs/04-env-example.md`.
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md
@@ -220,4 +252,6 @@ La documentación vive en `docs/`. **Empieza por** `docs/README.md` (orden de le
 - `docs/12-security.md`
 - `docs/13-troubleshooting.md`
 - `docs/14-comercializacion-mvp-precios.md`
+- `docs/15-asistente-respuestas.md` — estándares de tono y lenguaje del asistente (español).
+- `docs/16-github-issues.md` — etiquetas y convención de issues en GitHub.
 

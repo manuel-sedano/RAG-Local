@@ -62,9 +62,9 @@ Reglas:
 
 ### Feature branch: `docs/initial-docs-sync`
 
-- [ ] Revisar y alinear `README.md` y `docs/*.md` con la estructura final del repo
-- [ ] Crear plantilla de PR (si se decide) y convención de issues (opcional)
-- [ ] Definir estándares de respuesta del asistente (siempre en español) en un doc de producto (opcional)
+- [x] ~~Revisar y alinear `README.md` y `docs/*.md` con la estructura final del repo~~ — Árbol en README, desarrollo local vs Docker, índice `docs/README.md` y enlaces coherentes.
+- [x] ~~Crear plantilla de PR (si se decide) y convención de issues (opcional)~~ — `.github/pull_request_template.md` + `docs/16-github-issues.md` + referencias en `03-github-workflow.md`.
+- [x] ~~Definir estándares de respuesta del asistente (siempre en español) en un doc de producto (opcional)~~ — `docs/15-asistente-respuestas.md` enlazado desde README.
 
 ---
 

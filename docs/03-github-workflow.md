@@ -97,7 +97,9 @@ Ejemplos:
   - tests pasan
   - seguridad básica (no secretos)
 
-### Plantilla sugerida de PR
+En este repositorio, GitHub rellena la descripción inicial del PR con **`.github/pull_request_template.md`**: complétala (no borres secciones sin reemplazar por contenido real).
+
+### Plantilla sugerida de PR (referencia)
 
 ```md
 ## Summary
@@ -185,6 +187,8 @@ Checks sugeridos:
   - secret scanning (GitHub)
   - dependency scanning (Dependabot)
   - SAST básico (CodeQL opcional)
+
+**Issues y etiquetas:** ver `docs/16-github-issues.md`.
 
 ---
 
