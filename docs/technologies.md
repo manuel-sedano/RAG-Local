@@ -1,8 +1,8 @@
 # Tecnologías (Stack) y propósito
 
-Este documento describe el stack tecnológico propuesto, organizado por categoría. La plataforma está diseñada para ejecutarse **completamente local** y orquestarse con **Docker Compose** dentro de **WSL2**.
+**Alcance:** stack por categoría. Despliegue **local**, orquestación con **Docker Compose** en **WSL2**.
 
-> Principio rector: todo debe ser **open-source**, **gratuito**, **local-first**, y sin dependencias de servicios cloud.
+**Criterios de selección:** componentes **open-source**, **gratuitos**, **local-first**, sin dependencia de servicios cloud gestionados.
 
 ---
 
@@ -17,6 +17,7 @@ Este documento describe el stack tecnológico propuesto, organizado por categor�
 | Axios | Cliente HTTP | Manejo consistente de requests, interceptors, errores y auth headers. |
 | Socket.IO (client) | Streaming y eventos | Canal bidireccional para streaming de tokens y progreso de ingesta. |
 | react-markdown | Render de Markdown | Renderiza respuestas del modelo (con sanitización) y formato rico. |
+| PDF.js (`pdfjs-dist` o envoltorio React) | Visor PDF en el navegador | Permite abrir el PDF servido por la API con **salto a página N** coherente con las citas RAG; complementa el endpoint `GET .../documents/{id}/file`. |
 
 ---
 

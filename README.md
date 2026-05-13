@@ -2,7 +2,7 @@
 
 Repositorio para una **plataforma RAG (Retrieval Augmented Generation) 100% local** orientada a usuarios hispanohablantes. Permite **subir documentos**, **extraer texto**, **generar embeddings localmente**, **almacenarlos en un vector DB**, y **chatear con un LLM local** (Ollama + Qwen 2.5 7B Instruct) con **citas y fuentes**.
 
-> Nota: La documentación es deliberadamente detallada para facilitar un desarrollo “production-grade” en un entorno local. El objetivo es que cualquier explicación/respuesta generada por la IA dentro del producto final esté **en español**.
+La documentación del repositorio cubre despliegue y operación con nivel de detalle orientado a producción en entorno local. Las respuestas del producto (chat RAG) se definen en **español**.
 
 ---
 
@@ -37,7 +37,7 @@ Repositorio para una **plataforma RAG (Retrieval Augmented Generation) 100% loca
   - Recuperación vectorial + BM25 (híbrida)
   - Reranking con **FlashRank**
   - Respuesta en streaming (Socket.IO)
-  - **Citas/fuentes** por chunk y documento
+  - **Citas/fuentes** por chunk y documento, con **enlaces en la UI** al documento original y a la **página** cuando el formato lo permite (PDF mediante `page_start`/`page_end` en ingesta; flujo en `rag-flow.md` §7.4–§9.4)
   - Historial de chat por KB
   - Protección contra prompt injection y data exfiltration
 - **Plataforma / Operación**
@@ -58,6 +58,7 @@ Repositorio para una **plataforma RAG (Retrieval Augmented Generation) 100% loca
 - Axios
 - Socket.IO
 - react-markdown
+- PDF.js (visor PDF en el cliente; citas con salto a página)
 
 ### Backend
 
@@ -115,7 +116,7 @@ Flujos clave:
 - **Upload → Parse → Chunk → Embed → Upsert Qdrant**
 - **Query → Hybrid retrieval → Rerank → Prompt safe → LLM streaming**
 
-Detalles completos en `docs/architecture.md` y `docs/rag-flow.md`.
+Ampliación: `docs/architecture.md`, `docs/rag-flow.md`.
 
 ---
 
@@ -139,7 +140,7 @@ Detalles completos en `docs/architecture.md` y `docs/rag-flow.md`.
 
 ## Instalación y arranque (alto nivel)
 
-1) Preparar WSL2 + Ubuntu 22.04 + Docker Desktop (ver `docs/deployment.md`).
+1) Preparar WSL2 + Ubuntu 22.04 + Docker Desktop (`docs/deployment.md`).
 2) Clonar repositorio en el filesystem de WSL o en una ruta accesible (cuidando performance).
 3) Crear `.env` a partir de `docs/env-example.md`.
 4) Ejecutar Docker Compose.
@@ -149,14 +150,14 @@ Detalles completos en `docs/architecture.md` y `docs/rag-flow.md`.
    - Qdrant: `http://localhost/qdrant` (si se expone)
    - Grafana/Prometheus: `http://localhost/grafana` (si se expone)
 
-> Los pasos exactos (WSL2 + Docker + verificación) están en `docs/deployment.md`.
+Procedimiento detallado: `docs/deployment.md`.
 
 ---
 
 ## Variables de entorno
 
-- El ejemplo completo (con comentarios y explicación) está en `docs/env-example.md`.
-- Recomendación: **no** subir `.env` al repo.
+- Plantilla comentada: `docs/env-example.md`.
+- El archivo `.env` permanece fuera del control de versiones.
 
 ---
 
@@ -178,7 +179,7 @@ project/
 └── README.md
 ```
 
-> Este repositorio incluye únicamente documentación y planificación. Las carpetas de código (`frontend/`, `backend/`, etc.) se usarán para implementar el proyecto según `docs/todo.md`.
+**Estado del repositorio:** documentación y planificación; implementación de código en `frontend/`, `backend/`, etc., según `docs/todo.md`.
 
 ---
 

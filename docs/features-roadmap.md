@@ -1,8 +1,8 @@
 # Roadmap de funcionalidades (MVP → fases futuras)
 
-Este roadmap prioriza la construcción incremental de una plataforma RAG local, segura y operable. Se divide en fases con objetivos claros, entregables y criterios de “done”.
+**Alcance:** construcción incremental de una plataforma RAG local, segura y operable, en fases con objetivos, entregables y criterios de “done”.
 
-> Nota: el detalle ejecutable por tareas está en `docs/todo.md`.
+Desglose por tareas: `todo.md`.
 
 ---
 
@@ -71,6 +71,7 @@ Este roadmap prioriza la construcción incremental de una plataforma RAG local, 
   - streaming tokens Socket.IO
   - guardado de historial
   - citas (mapeadas por backend, no “inventadas” por el LLM)
+  - **enlaces en UI** al documento original y salto a **página** cuando exista metadata de página (PDF; DOCX/TXT según límites en `docs/rag-flow.md`)
 
 **Criterios Done (MVP)**
 

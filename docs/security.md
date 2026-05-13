@@ -1,19 +1,8 @@
 # Seguridad (Auth, uploads, WAF, rate limiting, logging, prompt injection)
 
-Este documento define controles de seguridad para una plataforma RAG local que:
+**Alcance:** controles para una plataforma RAG local con **uploads**, exposición web (UI + API), pipelines (parsing, OCR, embeddings) e invocación de LLM con contexto recuperado (prompt injection).
 
-- Acepta **uploads** de archivos (alto riesgo)
-- Expone endpoints web (UI + API)
-- Ejecuta pipelines (parsing, OCR, embeddings)
-- Invoca un LLM local con contexto recuperado (riesgo de prompt injection)
-
-Objetivos:
-
-- Minimizar superficie de ataque
-- Proteger la integridad del host y los datos
-- Mantener trazabilidad y auditoría
-- Prevenir abuso (DoS, brute force, scraping)
-- Diseñar para “secure-by-default”
+**Objetivos:** superficie de ataque reducida; integridad de host y datos; trazabilidad y auditoría; mitigación de abuso (DoS, fuerza bruta, scraping); configuración **secure-by-default**.
 
 ---
 
@@ -210,7 +199,7 @@ Capas:
 
 ### 6.1 Logs (Loki)
 
-Logs deben incluir:
+Campos habituales en logs estructurados:
 
 - `request_id` por request
 - `user_id` (si autenticado)
@@ -246,12 +235,12 @@ El contenido recuperado de documentos es **no confiable**. Puede contener instru
 
 #### A) Prompt seguro (system)
 
-El system prompt debe:
+Contenido típico del system prompt:
 
-- forzar español
-- prohibir obedecer instrucciones contenidas en documentos
-- exigir citas/evidencia
-- indicar cómo responder si falta evidencia
+- idioma de salida: español
+- instrucciones incrustadas en documentos de usuario: no tienen prioridad sobre la política del sistema
+- salida anclada a evidencia en chunks recuperados
+- plantilla de respuesta cuando no hay evidencia recuperada
 
 #### B) Sanitización de chunks
 
@@ -263,13 +252,12 @@ Antes de enviar al LLM:
 
 #### C) “Grounding enforcement”
 
-- Si no hay chunks relevantes:
-  - responder: “No encuentro evidencia en los documentos cargados…”
-- No permitir respuestas “creativas” sin fuentes.
+- Sin chunks por encima del umbral de relevancia: mensaje tipo “No encuentro evidencia en los documentos cargados…”
+- Sin fuentes en contexto: sin afirmaciones presentadas como hechos verificados en corpus.
 
 #### D) Filtrado de solicitud del usuario
 
-Bloquear o advertir ante:
+Patrones de solicitud con bloqueo o advertencia:
 
 - petición de credenciales/secretos
 - intento de extraer system prompt
@@ -277,41 +265,35 @@ Bloquear o advertir ante:
 
 #### E) Minimizar información del sistema
 
-- No exponer:
-  - paths internos
-  - nombres de servicios internos
-  - logs crudos
+Exclusión típica de la salida al cliente:
+
+- paths internos
+- nombres de servicios internos
+- logs crudos
+
+### 7.3 Descarga y visualización de documentos citados (auth)
+
+- Archivos subidos: sin URL estática pública ni rutas de disco predecibles sin sesión.
+- Acceso al binario: **`GET /api/kbs/{kb_id}/documents/{doc_id}/file`** con **JWT** y comprobación de membresía en la KB (`api-spec.md`).
+- Hipervínculos en el chat: **rutas internas** (`viewer_path`) → visor (p. ej. PDF.js) y obtención del PDF con el token de la SPA (`fetch` + blob/stream); sin enlaces anónimos al binario.
+- **Opcional (hardening):** URLs firmadas de muy corta duración (`sig` + `exp`) solo si se requiere abrir el archivo en una pestaña sin cabecera `Authorization`; rotar clave de firma y registrar auditoría de emisión.
 
 ---
 
 ## 8) Seguridad del frontend
 
-- Sanitizar Markdown:
-  - permitir solo elementos seguros
-  - bloquear HTML arbitrario
-- Protección contra XSS:
-  - CSP (si viable)
-  - headers estrictos en Traefik
-- Manejo de tokens:
-  - evitar `localStorage` si se busca mayor seguridad
-  - preferible cookies httpOnly (trade-off con arquitectura)
-  - en entorno local, documentar claramente la decisión
+- **Markdown:** render con lista blanca de etiquetas; `href` restringido a rutas internas (`/...`) o esquemas controlados por la aplicación; HTML arbitrario fuera del pipeline de render.
+- **XSS:** CSP cuando el despliegue lo permita; cabeceras endurecidas vía Traefik.
+- **Tokens:** almacenamiento en `localStorage` frente a cookies `httpOnly` según modelo de amenaza y arquitectura; la elección queda registrada en la documentación del despliegue.
 
 ---
 
 ## 9) Configuración de red segura (Docker)
 
-- Exponer al host solo Traefik (80/443).
-- No exponer:
-  - Postgres (5432)
-  - Redis (6379)
-  - Qdrant (6333/6334)
-  - Ollama (11434)
-  - Uvicorn directo
-- Usar network interno.
-- Volúmenes:
-  - sin mounts amplios del host
-  - permisos mínimos
+- **Host:** únicamente Traefik en 80/443 hacia el exterior.
+- **Puertos no publicados hacia el host:** Postgres (5432), Redis (6379), Qdrant (6333/6334), Ollama (11434), Uvicorn directo.
+- **Red:** bridge interna entre servicios.
+- **Volúmenes:** montajes acotados desde el host; permisos mínimos en rutas de datos.
 
 ---
 
@@ -328,4 +310,5 @@ Bloquear o advertir ante:
 - [ ] Logs con request_id + auditoría de eventos
 - [ ] Sanitización de Markdown y protección XSS
 - [ ] Guardrails anti prompt injection + grounding con citas
+- [ ] Archivos solo vía `GET .../documents/{id}/file` con auth; citas con `viewer_path` interno; sin JWT permanente en query string
 

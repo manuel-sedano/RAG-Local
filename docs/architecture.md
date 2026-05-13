@@ -1,6 +1,6 @@
 # Arquitectura
 
-Este documento describe la arquitectura objetivo de la plataforma RAG local: componentes, redes, almacenamiento, y flujos principales (upload, embeddings, retrieval y chat).
+**Alcance:** componentes, redes, almacenamiento y flujos (upload, embeddings, retrieval, chat) de la plataforma RAG local.
 
 ## Principios y restricciones
 
@@ -216,7 +216,8 @@ Recomendación:
 4. Persistencia:
    - mensaje del usuario
    - respuesta final
-   - lista de fuentes/citas (doc_id, chunk_id, score, page)
+   - lista de fuentes/citas (`document_id`, `chunk_id`, `score`, `page_start`/`page_end`, más rutas API resueltas: `viewer_path`, `file_path`; forma del objeto en `api-spec.md`)
+5. **Enlaces a fuentes:** hipervínculos a `viewer_path` con `page` para PDF (**PDF.js**); descarga opcional con `GET .../documents/{id}/file` autenticado. Formatos en `rag-flow.md` §7.4.
 
 ## 5) Flujo de networking (Networking flow)
 
@@ -233,7 +234,7 @@ Recomendación:
 
 - Archivos binarios (uploads) en volumen local:
   - políticas de acceso: solo worker/backend.
-  - nunca servir binarios directamente sin auth.
+  - **descarga/visualización autorizada** vía `GET /api/kbs/{kb_id}/documents/{doc_id}/file` con JWT y comprobación de membresía en la KB (nunca exponer `storage_path` ni servir el volumen sin control).
 - Texto extraído:
   - guardado como artefacto (opcional) para auditoría y reindex.
 - Vectores y payload:
@@ -260,5 +261,5 @@ Recomendación:
 - Validar y sanear todo input (WAF + validación app).
 - Antivirus antes de parsing.
 - Minimizar superficie: rutas internas, network privado, y headers estrictos.
-- Guardrails RAG (ver `docs/security.md` y `docs/rag-flow.md`).
+- Guardrails RAG: `security.md`, `rag-flow.md`.
 

@@ -1,6 +1,6 @@
 # Esquema de base de datos (PostgreSQL) y payloads (Qdrant)
 
-Este documento define un esquema relacional propuesto para PostgreSQL y el diseño de payloads/metadata en Qdrant para soportar:
+**Alcance:** esquema relacional PostgreSQL y payloads/metadata en Qdrant para:
 
 - Multi-Knowledge Base (KB)
 - Control de acceso (usuarios/roles/membresías)
@@ -9,7 +9,7 @@ Este documento define un esquema relacional propuesto para PostgreSQL y el dise�
 - Chats, mensajes y citas
 - Auditoría y eventos de seguridad
 
-> Nota: el diseño asume **una colección global en Qdrant** con filtros por payload (`kb_id`, `doc_id`, `owner_id`/`tenant_id`, etc.).
+El diseño usa **una colección global en Qdrant** con filtros por payload (`kb_id`, `doc_id`, `owner_id`/`tenant_id`, etc.).
 
 ---
 
@@ -225,9 +225,12 @@ Citas por mensaje del asistente.
 | document_id | uuid FK(documents.id) | |
 | chunk_id | uuid FK(chunks.id) | |
 | score | real | |
-| page | int nullable | |
+| page_start | int nullable | alineado con `chunks.page_start` (1-based cuando aplique, p. ej. PDF) |
+| page_end | int nullable | alineado con `chunks.page_end`; puede igualar `page_start` |
 | snippet | text nullable | |
 | created_at | timestamptz | |
+
+Los campos `viewer_path` y `file_path` de la API **no** se almacenan en esta tabla: se calculan al serializar la respuesta a partir de `document_id`, `kb_id` del chat y `page_start` (contrato en `api-spec.md`).
 
 ## Tabla: `rate_limit_events` (opcional)
 
