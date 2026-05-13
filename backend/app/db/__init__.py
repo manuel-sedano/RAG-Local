@@ -1,1 +1,1 @@
-"""Sesiones SQLAlchemy, modelos y repositorios."""
+"""SQLAlchemy, sesiones y repositorios."""

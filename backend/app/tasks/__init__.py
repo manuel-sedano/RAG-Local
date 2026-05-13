@@ -1,1 +1,1 @@
-"""Tareas asíncronas (Celery / colas) en fases posteriores."""
+"""Tareas asíncronas (Celery / colas)."""
