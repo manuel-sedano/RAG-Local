@@ -179,7 +179,7 @@ project/
 └── README.md
 ```
 
-**Estado del repositorio:** documentación y planificación; `docker-compose.yml` base con placeholders (Traefik, servicios de datos, worker con volumen de uploads). Código de aplicación en `frontend/`, `backend/`, etc., según `docs/08-todo.md`.
+**Estado del repositorio:** `docker-compose` con placeholders; **frontend** Next.js 16 (App Router, Tailwind, shadcn/ui, ESLint); **backend** layout `app/` + `pyproject.toml` (Ruff, Black, isort, pytest). Siguientes fases en `docs/08-todo.md`.
 
 ---
 
