@@ -1,8 +1,8 @@
 # Ejemplo de variables de entorno (`.env`)
 
-Este archivo muestra un **ejemplo** de variables para ejecutar la plataforma local. Debe copiarse a la raíz del repo como `.env`.
+Plantilla de variables para ejecución local. Copia a la raíz del proyecto como `.env`.
 
-> Importante: los comentarios y explicación están en español. No subas `.env` al repositorio.
+Comentarios en español. El archivo `.env` queda fuera del control de versiones.
 
 ---
 

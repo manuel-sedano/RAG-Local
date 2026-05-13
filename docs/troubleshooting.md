@@ -1,6 +1,6 @@
 # Troubleshooting (WSL2, Docker, Ollama, Qdrant, memoria, performance)
 
-Este documento lista problemas comunes y pasos de diagnóstico para un despliegue local en Windows 11 + WSL2 + Docker Compose.
+**Alcance:** problemas frecuentes y diagnóstico en despliegue local Windows 11 + WSL2 + Docker Compose.
 
 ---
 

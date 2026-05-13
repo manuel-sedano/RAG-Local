@@ -1,8 +1,8 @@
 # Despliegue local (WSL2 + Docker Compose)
 
-Este documento describe cómo preparar un entorno **100% local** en Windows 11 usando **WSL2 (Ubuntu 22.04)** y **Docker Desktop**, y cómo levantar la plataforma con **Docker Compose**.
+Preparación de entorno **100% local** en Windows 11 con **WSL2 (Ubuntu 22.04)** y **Docker Desktop**, y arranque con **Docker Compose**.
 
-> Objetivo: reproducibilidad. Debes poder clonar el repo, crear `.env`, ejecutar `docker compose up -d` y verificar salud de servicios.
+**Reproducibilidad:** clon del repositorio, archivo `.env`, comando `docker compose up -d`, comprobación de salud de servicios.
 
 ---
 
@@ -67,7 +67,7 @@ sudo apt install -y \
   python3 python3-venv python3-pip
 ```
 
-> Nota: aunque el proyecto corre con Docker, estas herramientas ayudan para scripts, debugging y utilidades.
+El runtime principal es Docker; el paquete anterior cubre scripts locales, depuración y utilidades en WSL.
 
 ### (Recomendado) Configurar recursos de WSL
 
@@ -121,15 +121,15 @@ git clone <TU_URL_DEL_REPO> rag-local
 cd rag-local
 ```
 
-> Evita trabajar directo en rutas montadas de Windows (`/mnt/c/...`) si notas lentitud con node_modules, watch, o I/O intensivo.
+Rutas montadas desde Windows (`/mnt/c/...`): mayor latencia en `node_modules`, watchers e I/O frecuente; el filesystem nativo de WSL reduce el problema.
 
 ---
 
 ## 5) Preparar variables de entorno
 
-1. Crea `.env` en la raíz del repo.
-2. Copia valores desde `docs/env-example.md`.
-3. Ajusta:
+1. Archivo `.env` en la raíz del repositorio.
+2. Valores de partida en `env-example.md`.
+3. Variables típicas:
    - secretos JWT
    - credenciales de Postgres
    - configuración de CORS/orígenes
@@ -140,7 +140,7 @@ cd rag-local
 
 ## 6) Estructura esperada de carpetas (local)
 
-En la raíz del repo deben existir (se crearán según necesidad):
+Estructura prevista en la raíz (creación según fase del proyecto):
 
 - `uploads/` (persistencia de archivos)
 - `docker/` (configs traefik/waf/observabilidad)
@@ -250,7 +250,7 @@ Cuando `ollama` esté configurado:
 docker compose exec ollama ollama pull qwen2.5:7b-instruct
 ```
 
-> Nota: los nombres exactos de tags dependen del catálogo de Ollama local. Ajusta según la versión instalada.
+Los identificadores de modelo (`qwen2.5:7b-instruct`, etc.) dependen del catálogo de la instancia Ollama en uso.
 
 ---
 
@@ -263,12 +263,12 @@ docker compose exec ollama ollama pull qwen2.5:7b-instruct
   - Uploads: copia de `uploads/`
 - **Actualizaciones**:
   - `docker compose pull` y `docker compose up -d`
-- **Recursos**: monitorea RAM/CPU durante OCR + embeddings.
+- **Recursos:** uso de RAM/CPU elevado durante OCR y embeddings.
 
 ---
 
 ## 12) Troubleshooting rápido (enlaces)
 
-- Problemas Docker/WSL2: ver `docs/troubleshooting.md`
-- Seguridad/WAF/uploads: ver `docs/security.md`
+- Docker/WSL2: `troubleshooting.md`
+- Seguridad, WAF, uploads: `security.md`
 

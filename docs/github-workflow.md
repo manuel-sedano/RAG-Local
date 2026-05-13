@@ -1,13 +1,13 @@
 # Flujo de trabajo en GitHub (branches, commits, PRs, releases)
 
-Este documento propone un flujo de ingeniería profesional para desarrollar la plataforma RAG local, manteniendo calidad, revisión, trazabilidad y releases ordenados.
+**Alcance:** flujo de ramas, revisiones, trazabilidad y releases para el desarrollo de la plataforma RAG local.
 
 ---
 
 ## Objetivos del workflow
 
 - Mantener el repositorio siempre en estado “mergeable”.
-- Evitar ramas gigantes y PRs inmanejables.
+- Ramas de larga duración y PRs muy grandes incrementan conflicto y regresiones.
 - Estandarizar commits y PRs para facilitar revisión.
 - Automatizar calidad (lint, tests, seguridad) desde el inicio.
 

@@ -1,6 +1,6 @@
 # Especificación de API (FastAPI)
 
-Esta especificación define endpoints REST y eventos de streaming para una plataforma RAG local. Está pensada para implementarse en **FastAPI** y documentarse vía OpenAPI/Swagger.
+Endpoints REST y eventos Socket.IO para la plataforma RAG local. Implementación de referencia: **FastAPI**; contrato publicable como OpenAPI/Swagger.
 
 ## Convenciones generales
 
@@ -16,7 +16,7 @@ Esta especificación define endpoints REST y eventos de streaming para una plata
 
 ## Modelo de error estándar
 
-Todas las respuestas de error deben respetar:
+Formato uniforme de respuestas de error:
 
 ```json
 {
@@ -348,6 +348,32 @@ Elimina documento (soft delete recomendado) y desencadena eliminación de vector
 
 **Response 204**
 
+### GET `/api/kbs/{kb_id}/documents/{doc_id}/file`
+
+Descarga u ofrece en línea el **archivo original** almacenado para el documento (mismo binario que se subió), tras validar membresía en la KB.
+
+**Headers**
+
+- `Authorization: Bearer <token>` (obligatorio)
+
+**Query params (opcionales)**
+
+- `disposition`: `inline` | `attachment` — controla `Content-Disposition` (por defecto `inline` para PDF y tipos visualizables en navegador, `attachment` para forzar descarga si el cliente lo requiere).
+
+**Response 200**
+
+- Cuerpo: stream del archivo.
+- `Content-Type`: según `mime_type` del documento.
+- `Content-Disposition`: acorde a `disposition`.
+
+**Errores**
+
+- `403` sin permiso en la KB
+- `404` documento inexistente o eliminado
+- `409` documento en cuarentena / no listo para servir (según política)
+
+**Citas RAG:** `file_path` referencia esta ruta API; las rutas del volumen de almacenamiento no forman parte del contrato con el cliente. Autenticación: mismo JWT que el resto de la API. Apertura sin cabecera `Authorization`: URLs firmadas de corta duración (`security.md` §7.3).
+
 ---
 
 ## Búsqueda (opcional como endpoint separado)
@@ -388,6 +414,24 @@ Devuelve candidatos con score y metadatos (útil para depuración).
 ---
 
 ## Chat RAG
+
+### Objeto `citation` (mensajes del asistente)
+
+Cada elemento de `citations` describe una fuente recuperada y enlazable:
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `document_id` | uuid | FK a `documents.id`. |
+| `chunk_id` | uuid | FK a `chunks.id` (trazabilidad y auditoría). |
+| `filename_original` | string | Nombre legible para la UI. |
+| `mime_type` | string | Tipo MIME del archivo original. |
+| `page_start` | int nullable | Primera página del fragmento (1-based cuando aplique). |
+| `page_end` | int nullable | Última página; puede coincidir con `page_start`. |
+| `score` | number | Relevancia (retriever/reranker). |
+| `viewer_path` | string | Ruta **relativa** de la SPA (Next.js) que abre el visor con contexto de KB y documento; incluir `?page=` para PDF. |
+| `file_path` | string | Ruta API `GET .../file` para descarga o fetch autenticado. |
+
+`viewer_path` y `file_path` se obtienen en el servidor al persistir o emitir el mensaje; valores enviados por el modelo sin validación quedan fuera de contrato.
 
 ### POST `/api/kbs/{kb_id}/chats`
 
@@ -440,10 +484,15 @@ Historial de mensajes.
       "content": "Según el documento ...",
       "citations": [
         {
-          "doc_id": "uuid",
+          "document_id": "uuid",
           "chunk_id": "uuid",
-          "page": 3,
-          "score": 0.81
+          "filename_original": "manual-finanzas-2026.pdf",
+          "mime_type": "application/pdf",
+          "page_start": 3,
+          "page_end": 3,
+          "score": 0.81,
+          "viewer_path": "/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2?page=3",
+          "file_path": "/api/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2/file"
         }
       ],
       "created_at": "2026-05-11T18:45:06Z"
@@ -497,7 +546,17 @@ Envía mensaje del usuario e inicia generación. Puede operar en modo:
   "role": "assistant",
   "content": "Según la política de viáticos...",
   "citations": [
-    { "doc_id": "uuid", "chunk_id": "uuid", "page": 3, "score": 0.81 }
+    {
+      "document_id": "uuid",
+      "chunk_id": "uuid",
+      "filename_original": "manual.pdf",
+      "mime_type": "application/pdf",
+      "page_start": 3,
+      "page_end": 3,
+      "score": 0.81,
+      "viewer_path": "/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2?page=3",
+      "file_path": "/api/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2/file"
+    }
   ],
   "usage": {
     "prompt_tokens": 1234,
@@ -549,7 +608,17 @@ Emite citas detectadas/confirmadas.
 {
   "message_id": "uuid",
   "citations": [
-    { "doc_id": "uuid", "chunk_id": "uuid", "page": 3, "score": 0.81 }
+    {
+      "document_id": "uuid",
+      "chunk_id": "uuid",
+      "filename_original": "manual.pdf",
+      "mime_type": "application/pdf",
+      "page_start": 3,
+      "page_end": 3,
+      "score": 0.81,
+      "viewer_path": "/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2?page=3",
+      "file_path": "/api/kbs/00000000-0000-4000-8000-0000000000a1/documents/00000000-0000-4000-8000-0000000000b2/file"
+    }
   ]
 }
 ```

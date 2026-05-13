@@ -1,16 +1,8 @@
 # Flujo RAG (chunking → embeddings → retrieval → reranking → prompting)
 
-Este documento explica el flujo completo de RAG para una plataforma local con:
+**Alcance:** flujo RAG en despliegue local con chunking configurable, embeddings (bge-m3), búsqueda híbrida (vector + BM25), reranking (FlashRank), prompting, filtrado por metadatos y mitigación de prompt injection.
 
-- Chunking configurable
-- Embeddings locales (bge-m3)
-- Búsqueda híbrida (vector + BM25)
-- Reranking (FlashRank)
-- Prompting robusto
-- Filtrado por metadatos
-- Defensa contra prompt injection
-
-El objetivo es que el sistema produzca respuestas **en español**, con **citas** y **trazabilidad**.
+**Salida:** respuestas **en español**, con **citas** y **trazabilidad** a fragmentos y documentos.
 
 ---
 
@@ -217,7 +209,7 @@ Reranking reordena candidatos usando un modelo ligero que considera:
 
 ### 6.3 Límites
 
-- Evitar rerank de cientos de chunks por performance.
+- Rerank acotado a decenas de candidatos por coste de latencia.
 - Medir latencia y ajustar N/M.
 
 ---
@@ -254,7 +246,7 @@ Recomendación de salida:
 - Respuesta en texto natural.
 - Sección “Fuentes” con:
   - documento
-  - página
+  - página (o rango, si el chunk cruza páginas)
   - identificador de chunk (para auditoría)
 
 Ejemplo de respuesta deseada (en español):
@@ -264,6 +256,36 @@ Ejemplo de respuesta deseada (en español):
 > **Fuentes:**  
 > - Manual Finanzas 2026, pág. 3 (chunk 17)  
 > - Manual Finanzas 2026, pág. 4 (chunk 22)
+
+### 7.4 Enlaces a documento y página (UI y API)
+
+Los enlaces por cita se apoyan en: metadatos de ingesta (`document_id`, `page_start` / `page_end` en `chunks`, `database-schema.md`), transmisión del binario por HTTP autenticado (`api-spec.md`, `GET .../documents/{id}/file`) y ruta de aplicación que inicializa el visor en la página indicada. Operación posible sin object storage externo.
+
+| Formato | Enlace a documento | Enlace / salto a página | Notas |
+|---------|-------------------|-------------------------|--------|
+| **PDF** | Sí (descarga o visor in-app) | Sí, de forma fiable | Extractores tipo PyMuPDF aportan índice de página por chunk; **PDF.js** posiciona la vista en la página N. |
+| **DOCX** | Sí (descarga o vista texto) | Parcial / aproximada | El número de página depende del motor de composición; sin PDF intermedio, la correlación chunk↔página es imprecisa. Conversión a PDF en ingesta unifica el salto por página. |
+| **TXT** | Sí | No aplica | Metadatos opcionales: offset o número de línea; no hay noción de página. |
+
+**Comportamiento**
+
+1. **Citas:** el backend arma la lista desde los chunks incluidos en el contexto; las URLs del payload no se aceptan sin validación desde la salida del modelo.
+2. **Payload hacia el cliente:** además de `document_id`, `chunk_id`, `score` y rango de página, se envían rutas relativas para hipervínculos:
+   - `viewer_path`: ruta de aplicación (p. ej. `/kbs/{kb_id}/documents/{document_id}?page=3`); acceso tras autenticación, sin URL anónima al volumen.
+   - `file_path`: ruta API del binario (`/api/kbs/{kb_id}/documents/{document_id}/file`); peticiones con **Authorization: Bearer**; sin JWT fijo en query string.
+3. **Markdown:** enlaces permitidos solo si el backend inyecta la URL o un `citation_ref` que el frontend resuelve; lista blanca de `href` y bloqueo de `javascript:` en `security.md` §8.
+4. **URLs firmadas:** `/file?sig=...&exp=...` de corta duración como variante en `security.md` §7.3.
+5. **Múltiples archivos:** el contexto puede mezclar chunks de varios documentos de una KB (filtro `kb_id`). El arreglo `citations` lleva una entrada por fuente usada (o por deduplicación top-M por documento, según política). Cada elemento tiene `document_id`, `viewer_path` y `file_path` propios.
+
+### 7.5 Dónde se almacenan los documentos (binarios vs metadatos)
+
+| Capa | Tecnología | Qué guarda |
+|------|------------|------------|
+| **Metadatos y control** | **PostgreSQL** | Tabla `documents`: nombre original, MIME, tamaño, hash, estado de ingesta, `kb_id`, y **`storage_path`** (ruta interna al archivo en disco, no pública). Tabla `chunks` y `message_citations` para texto fragmentado, páginas y trazabilidad. |
+| **Archivo subido (binario)** | **Sistema de archivos en volumen Docker** (o ruta equivalente en servidor) | El PDF/DOCX/TXT tal cual se subió; solo **backend/worker** leen/escriben; el cliente accede vía `GET .../documents/{id}/file` con autenticación. |
+| **Búsqueda semántica** | **Qdrant** | Vectores por chunk + **payload** con `doc_id`, `kb_id`, `page_start`/`page_end`, etc.; no sustituye el almacenamiento del binario. |
+
+Diseño **local-first:** binarios en volumen y metadatos en PostgreSQL; object storage (S3, Azure Blob, etc.) queda fuera del alcance base. Una migración futura reemplaza la resolución de `storage_path` y la implementación interna de `/file` sin cambiar el contrato JSON expuesto al cliente.
 
 ---
 
@@ -320,10 +342,9 @@ Entonces:
 
 #### E) “Grounding”
 
-Exigir que la respuesta cite evidencia:
+La respuesta cita evidencia en los chunks recuperados.
 
-- si no hay chunks relevantes, el sistema debe decir:
-  - “No encuentro evidencia en los documentos cargados…”
+- Sin chunks relevantes, mensaje tipo: “No encuentro evidencia en los documentos cargados…”
 
 ---
 
@@ -331,18 +352,31 @@ Exigir que la respuesta cite evidencia:
 
 ### 9.1 Sanitización para UI
 
-Si se renderiza Markdown:
+Render Markdown:
 
-- sanitizar HTML (no permitir `<script>`)
-- lista blanca de tags/links
-- deshabilitar `javascript:` en links
+- HTML: sin `<script>` ni tags fuera de lista blanca
+- enlaces: esquemas permitidos; `javascript:` excluido
 
 ### 9.2 Extracción de citas
 
-Estrategias:
-
 - El backend construye citas a partir de top-M chunks usados.
-- Evitar confiar en que el LLM “inventará” citas correctas.
+- La precisión de documento/página no depende de que el LLM genere referencias por su cuenta.
+
+### 9.3 Citas con hipervínculo en la interfaz
+
+- Tras generar la respuesta (o en paralelo al streaming), el backend devuelve un arreglo estructurado de citas (REST y/o evento Socket.IO `chat:citation`) con `viewer_path`, `file_path`, `filename_original`, `page_start`, `page_end` y `mime_type`.
+- El componente de chat renderiza cada fuente como enlace a `viewer_path` o botón “Descargar” contra `file_path`.
+- Para PDF en el visor interno, **PDF.js** interpreta el query `page` (o estado inicial) para mostrar la página correcta.
+
+### 9.4 Apertura del documento desde la interfaz
+
+1. **Fuentes:** bajo el mensaje del asistente, cada cita incluye texto legible (archivo, “pág. N”) y enlace a `viewer_path` (ruta interna de la SPA, no path del volumen).
+2. **Ruta visor:** ejemplo `/kbs/{kb_id}/documents/{document_id}?page=3`; el query `page` fija la página inicial en PDF; en otros MIME puede omitirse o asociarse solo a descarga.
+3. **Binario:** `fetch(file_path)` con `Authorization: Bearer <access_token>` (o esquema de cookie definido en el proyecto); cuerpo: stream con `Content-Type` del documento.
+4. **Render:** PDF → **PDF.js** sobre blob/arrayBuffer, vista en la página indicada; DOCX/TXT → descarga o vista simplificada; salto a página en DOCX no garantizado sin PDF (§7.4).
+5. **Descarga:** `file_path` con `disposition=attachment` si el API lo expone, o blob en cliente tras `fetch` autenticado.
+
+**Exposición:** sin URL anónima al archivo; acceso bajo sesión autenticada o URL firmada de vida corta (`security.md` §7.3).
 
 ---
 
@@ -371,4 +405,5 @@ Estrategias:
 - [ ] Filtrado por metadatos server-side
 - [ ] Prompt seguro (español + grounding + anti-injection)
 - [ ] Streaming y persistencia de chat + citas
+- [ ] Citas con enlaces a visor/descarga y salto a página (PDF); límites documentados para DOCX/TXT
 

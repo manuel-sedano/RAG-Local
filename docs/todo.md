@@ -12,7 +12,7 @@ Reglas:
 - Las tareas están separadas por backend/frontend/docker/testing/docs/security/observability.
 - Las ramas sugeridas se pueden dividir en PRs pequeños.
 
-> Nota: muchas tareas asumen que el repo tendrá `frontend/`, `backend/`, `docker/`, `scripts/`, `uploads/` y `docker-compose.yml`. Este documento describe el trabajo para implementar todo eso.
+**Contexto:** el árbol objetivo incluye `frontend/`, `backend/`, `docker/`, `scripts/`, `uploads/` y `docker-compose.yml`. Las tareas siguientes cubren la implementación.
 
 ---
 
@@ -208,6 +208,7 @@ Reglas:
     - [ ] `GET /api/kbs/{kb_id}/documents`
     - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}`
     - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/status`
+    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/file` (stream autenticado; `Content-Disposition` inline/attachment)
     - [ ] `DELETE /api/kbs/{kb_id}/documents/{doc_id}`
   - [ ] modelo `Document` con estados:
     - [ ] `UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `QUARANTINED`, `DELETED`
@@ -446,7 +447,8 @@ Reglas:
   - [ ] formato de salida con fuentes
 - [ ] Citas:
   - [ ] backend asigna citas basadas en chunks usados
-  - [ ] persistir `message_citations`
+  - [ ] persistir `message_citations` (`page_start` / `page_end` alineados con `chunks`)
+  - [ ] en respuesta API y evento `chat:citation`: incluir `viewer_path`, `file_path`, `filename_original`, `mime_type` (derivados en servidor; forma en `api-spec.md`)
 - [ ] Endpoint:
   - [ ] `POST /api/kbs/{kb_id}/chats/{chat_id}/messages`
 - [ ] Tests:
@@ -624,6 +626,10 @@ Reglas:
   - [ ] metadatos
   - [ ] estado de ingesta por etapas
   - [ ] botón reindex (si existe)
+- [ ] **Visor con salto a página (PDF):**
+  - [ ] ruta p. ej. `/kbs/[kbId]/documents/[docId]?page=N`
+  - [ ] integrar **PDF.js**; obtener PDF con `Authorization` (fetch) y pasar a visor
+  - [ ] DOCX/TXT: descarga o vista texto; sin prometer página exacta salvo conversión futura a PDF
 - [ ] Upload:
   - [ ] drag&drop
   - [ ] validación UX
@@ -638,8 +644,8 @@ Reglas:
   - [ ] render Markdown seguro
   - [ ] scroll behavior (autoscroll inteligente)
 - [ ] Citas:
-  - [ ] mostrar fuentes como lista
-  - [ ] al hacer click, abrir detalle (doc + página si disponible)
+  - [ ] mostrar fuentes como lista con hipervínculos a `viewer_path` (y opción descarga `file_path`)
+  - [ ] al hacer click, abrir visor en página cuando `mime_type` sea PDF y exista `page_start`
 - [ ] Historial:
   - [ ] lista de chats por KB
   - [ ] renombrar chat (opcional)
