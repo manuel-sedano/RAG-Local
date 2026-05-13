@@ -1,4 +1,4 @@
-# TODO maestro (extremadamente detallado) — por fases y feature branches
+# TODO maestro — por fases y feature branches
 
 Este archivo es el backlog ejecutable del proyecto. Está organizado por:
 
@@ -20,29 +20,29 @@ Reglas:
 
 ### Feature branch: `chore/repo-bootstrap`
 
-- [ ] Crear estructura de carpetas: `frontend/`, `backend/`, `docker/`, `scripts/`, `uploads/`
-- [ ] Crear `.gitignore` robusto (node_modules, .env, uploads, volúmenes, caches, modelos)
-- [ ] Definir convención de nombres para servicios/volúmenes/redes
-- [ ] Crear `docker-compose.yml` base con servicios:
-  - [ ] `traefik`
-  - [ ] `frontend` (placeholder)
-  - [ ] `backend` (placeholder)
-  - [ ] `worker` (placeholder)
-  - [ ] `postgres`
-  - [ ] `redis`
-  - [ ] `qdrant`
-  - [ ] `ollama`
-  - [ ] `clamav` (opcional en MVP; recomendado temprano)
-  - [ ] `prometheus`, `grafana`, `loki` (opcional por fase)
-- [ ] Definir redes:
-  - [ ] una red interna (p. ej. `rag_net`)
-  - [ ] exponer solo Traefik a host (80/443)
-- [ ] Definir volúmenes persistentes:
-  - [ ] Postgres
-  - [ ] Qdrant
-  - [ ] Ollama models
-  - [ ] uploads
-- [ ] Documentar “smoke test” mínimo (health endpoints y verificación)
+- [x] ~~Crear estructura de carpetas: `frontend/`, `backend/`, `docker/`, `scripts/`, `uploads/`~~ — Carpetas + `README`/`scripts` y `uploads/.gitkeep`.
+- [x] ~~Crear `.gitignore` robusto (node_modules, .env, uploads, volúmenes, caches, modelos)~~ — Reglas para Python, Node, `.env`, `uploads/**`, modelos, caches, IDE.
+- [x] ~~Definir convención de nombres para servicios/volúmenes/redes~~ — `docker/CONVENTIONS.md` (red `rag_net`, volúmenes `rag_vol_*`, perfiles `clamav` / `observability`).
+- [x] ~~Crear `docker-compose.yml` base con servicios:~~ — `docker-compose.yml` en la raíz.
+  - [x] ~~`traefik`~~ — `traefik:v3.2`, config en `docker/traefik/traefik.yml`, métricas Prometheus.
+  - [x] ~~`frontend` (placeholder)~~ — build `docker/placeholders/frontend` (nginx + página estática, `/health`).
+  - [x] ~~`backend` (placeholder)~~ — build `docker/placeholders/backend` (nginx, `/api/health` JSON).
+  - [x] ~~`worker` (placeholder)~~ — Alpine `sleep infinity`, monta `rag_vol_uploads` en `/uploads`.
+  - [x] ~~`postgres`~~ — `postgres:16-alpine`, volumen `rag_vol_postgres`, healthcheck.
+  - [x] ~~`redis`~~ — `redis:7-alpine`, healthcheck.
+  - [x] ~~`qdrant`~~ — `qdrant/qdrant:v1.12.4`, volumen `rag_vol_qdrant`.
+  - [x] ~~`ollama`~~ — `ollama/ollama:latest`, volumen `rag_vol_ollama`.
+  - [x] ~~`clamav` (opcional en MVP; recomendado temprano)~~ — perfil `clamav`, imagen oficial, volumen `rag_vol_clamav`.
+  - [x] ~~`prometheus`, `grafana`, `loki` (opcional por fase)~~ — perfil `observability`; Traefik en `/prometheus` y `/grafana/`; Loki solo red interna.
+- [x] ~~Definir redes:~~
+  - [x] ~~una red interna (p. ej. `rag_net`)~~ — bridge `rag_net`.
+  - [x] ~~exponer solo Traefik a host (80/443)~~ — únicos `ports:` en el servicio `traefik`.
+- [x] ~~Definir volúmenes persistentes:~~
+  - [x] ~~Postgres~~ — `rag_vol_postgres`
+  - [x] ~~Qdrant~~ — `rag_vol_qdrant`
+  - [x] ~~Ollama models~~ — `rag_vol_ollama`
+  - [x] ~~uploads~~ — `rag_vol_uploads` (montado en `worker`)
+- [x] ~~Documentar “smoke test” mínimo (health endpoints y verificación)~~ — `docs/smoke-test.md`
 
 ### Feature branch: `chore/dev-tooling`
 
@@ -735,4 +735,3 @@ Reglas:
 - [ ] Agregar métricas de calidad proxy:
   - [ ] porcentaje con citas
   - [ ] tiempo a primer token
-
