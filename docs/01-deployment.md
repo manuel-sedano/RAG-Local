@@ -90,22 +90,55 @@ wsl --shutdown
 
 ## 3) Instalar Docker Desktop y habilitar integración WSL2
 
-1. Instala Docker Desktop.
+1. Instala **Docker Desktop** en Windows y ábrelo (debe quedar en ejecución).
 2. En Docker Desktop:
-   - **Settings → General**: habilita “Use the WSL 2 based engine”.
-   - **Settings → Resources → WSL Integration**: habilita Ubuntu-22.04.
-3. Verifica desde WSL:
+   - **Settings → General**: habilita **“Use the WSL 2 based engine”**.
+   - **Settings → Resources → WSL integration**:
+     - Activa **“Enable integration with my default WSL distro”** (si aparece), y/o
+     - Activa explícitamente tu distro (p. ej. **Ubuntu** o **Ubuntu-22.04**) en la lista.
+3. Aplica y reinicia si el programa lo pide; si sigue fallando, en **PowerShell** (Windows):
+
+   ```powershell
+   wsl --shutdown
+   ```
+
+   Luego vuelve a abrir **Docker Desktop** y espera a que arranque por completo.
+
+4. Verifica **desde la terminal de Ubuntu (WSL)** (no solo desde PowerShell):
 
 ```bash
 docker version
 docker compose version
 ```
 
-Si falla, revisa:
+### Síntoma: `The command 'docker' could not be found in this WSL 2 distro`
 
-- Docker Desktop está iniciado.
-- WSL Integration habilitada.
-- `wsl --shutdown` y reinicia Docker Desktop.
+Significa que **en esa distro WSL no está instalado el cliente Docker** (Docker Desktop no ha inyectado el binario) o la integración está desactivada.
+
+1. Confirma que Docker Desktop está **abierto** y sin errores en la bandeja.
+2. **Settings → Resources → WSL integration**: activa tu distro exacta (el nombre que sale en `wsl -l -v`).
+3. `wsl --shutdown` en PowerShell → abre de nuevo Ubuntu y Docker Desktop.
+4. Vuelve a ejecutar `docker version` dentro de WSL.
+
+**Alternativa (no recomendada para este proyecto):** instalar `docker.io` con `apt` dentro de WSL; duplica el motor y choca con Docker Desktop. Para este repo se asume **solo Docker Desktop + integración WSL**.
+
+### Síntoma: Git `fatal: detected dubious ownership in repository at '/mnt/c/...'`
+
+Ocurre cuando el repo está en **disco Windows** (`/mnt/c/...`) y el propietario de los archivos no coincide con tu usuario Linux en WSL. Git bloquea el acceso por seguridad.
+
+En **WSL** (ajusta la ruta si es distinta):
+
+```bash
+git config --global --add safe.directory '/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local'
+```
+
+O, solo para este repo y sin fijar la ruta absoluta (útil si cambias de ruta):
+
+```bash
+git config --global --add safe.directory '*'
+```
+
+La opción `'*'` es más permisiva; úsala solo si entiendes el riesgo en máquinas compartidas.
 
 ---
 
@@ -133,6 +166,9 @@ Desde tu ruta actual (ajusta si tu usuario o carpeta difieren):
 
 ```bash
 cd "/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local"
+
+# Si Git avisa "dubious ownership" en repos bajo /mnt/c/:
+git config --global --add safe.directory '/mnt/c/Users/flox_/OneDrive - Universidad de Monterrey/Proyectos personales/RAG Local'
 
 git fetch origin
 git checkout develop
