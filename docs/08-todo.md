@@ -72,43 +72,43 @@ Reglas:
 
 ### Feature branch: `feat/backend-core`
 
-- [ ] Configuración:
-  - [ ] implementar loader de `.env` (pydantic settings)
-  - [ ] separar settings por ambiente (`local`, `test`)
-  - [ ] validar settings al boot (fallar rápido)
-- [ ] Logging:
-  - [ ] logging estructurado (JSON o key-value) con `request_id`
-  - [ ] middleware de `request_id` (propagar en logs/responses)
-  - [ ] sanitizar logs (no tokens, no passwords)
-- [ ] Health:
-  - [ ] endpoint `GET /api/health`
-  - [ ] chequeo de Postgres, Redis, Qdrant, Ollama
-  - [ ] retornar `503` si dependencia crítica cae
-- [ ] Seguridad base:
-  - [ ] headers de seguridad (via Traefik y/o FastAPI)
-  - [ ] CORS restringido por `CORS_ALLOW_ORIGINS`
+- [x] ~~Configuración:~~
+  - [x] ~~implementar loader de `.env` (pydantic settings)~~ — `app/core/config.py` + `pydantic-settings` (`env_file` `.env` / `../.env`).
+  - [x] ~~separar settings por ambiente (`local`, `test`)~~ — `environment` + validación distinta en `test` vs `local`/`staging`/`production`.
+  - [x] ~~validar settings al boot (fallar rápido)~~ — `Settings.validate_boot` (JWT, `DATABASE_URL`).
+- [x] ~~Logging:~~
+  - [x] ~~logging estructurado (JSON o key-value) con `request_id`~~ — `app/core/logging_config.py` (JSON) + `RequestIdFilter`.
+  - [x] ~~middleware de `request_id` (propagar en logs/responses)~~ — `RequestIdMiddleware` + cabecera `X-Request-ID`.
+  - [x] ~~sanitizar logs (no tokens, no passwords)~~ — `RedactAttributesFilter` + redacción en formatter (`password`, `token`, `secret`, …).
+- [x] ~~Health:~~
+  - [x] ~~endpoint `GET /api/health`~~ — `app/api/routes/health.py`.
+  - [x] ~~chequeo de Postgres, Redis, Qdrant, Ollama~~ — `app/services/health_check.py`.
+  - [x] ~~retornar `503` si dependencia crítica cae~~ — `503` si alguna dependencia falla.
+- [x] ~~Seguridad base:~~
+  - [x] ~~headers de seguridad (via Traefik y/o FastAPI)~~ — `SecurityHeadersMiddleware`.
+  - [x] ~~CORS restringido por `CORS_ALLOW_ORIGINS`~~ — `CORSMiddleware` con orígenes desde settings.
 
 ### Feature branch: `feat/db-schema-alembic`
 
-- [ ] DB:
-  - [ ] definir modelos SQLAlchemy para tablas core:
-    - [ ] `users`
-    - [ ] `refresh_tokens`
-    - [ ] `knowledge_bases`
-    - [ ] `kb_memberships` (si multiusuario)
-    - [ ] `documents`
-    - [ ] `document_ingestion_runs`
-    - [ ] `chunks`
-    - [ ] `chats`
-    - [ ] `chat_messages`
-    - [ ] `message_citations`
-    - [ ] `security_events` (opcional)
-    - [ ] `rate_limit_events` (opcional)
-  - [ ] crear migraciones Alembic iniciales
-  - [ ] crear índices recomendados (GIN/BTREE)
-- [ ] Testing:
-  - [ ] fixture de DB test (Postgres en Docker o sqlite compatible si viable)
-  - [ ] test de migración (alembic upgrade head)
+- [x] ~~DB:~~
+  - [x] ~~definir modelos SQLAlchemy para tablas core:~~
+    - [x] ~~`users`~~
+    - [x] ~~`refresh_tokens`~~
+    - [x] ~~`knowledge_bases`~~
+    - [x] ~~`kb_memberships` (multiusuario)~~
+    - [x] ~~`documents`~~
+    - [x] ~~`document_ingestion_runs`~~
+    - [x] ~~`chunks`~~
+    - [x] ~~`chats`~~
+    - [x] ~~`chat_messages`~~
+    - [x] ~~`message_citations`~~
+    - [x] ~~`security_events` (opcional)~~
+    - [x] ~~`rate_limit_events` (opcional)~~
+  - [x] ~~crear migraciones Alembic iniciales~~
+  - [x] ~~crear índices recomendados (GIN/BTREE)~~
+- [x] ~~Testing:~~
+  - [x] ~~fixture de DB test (Postgres en Docker o sqlite compatible si viable)~~
+  - [x] ~~test de migración (alembic upgrade head)~~
 
 ---
 

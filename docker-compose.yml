@@ -9,8 +9,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - rag_net
     command:
@@ -60,6 +60,9 @@ services:
     image: postgres:16-alpine
     container_name: rag_postgres
     restart: unless-stopped
+    # Acceso desde el host (WSL) para herramientas locales: alembic, psql, IDE
+    ports:
+      - "127.0.0.1:5432:5432"
     networks:
       - rag_net
     environment:

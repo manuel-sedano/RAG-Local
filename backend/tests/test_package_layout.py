@@ -9,7 +9,7 @@ APP_ROOT = BACKEND_ROOT / "app"
 
 
 def test_expected_subpackages_exist() -> None:
-    for name in ("api", "core", "db", "services", "tasks"):
+    for name in ("api", "core", "db", "models", "services", "tasks"):
         pkg = APP_ROOT / name
         assert pkg.is_dir(), f"missing directory: {pkg.relative_to(BACKEND_ROOT)}"
         init_py = pkg / "__init__.py"
