@@ -77,19 +77,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_boot(self) -> Settings:
-        if self.environment == "test":
-            if not self.jwt_secret.strip():
-                self.jwt_secret = "test_jwt_secret_" + "x" * 32
-            return self
-
-        if self.environment in ("staging", "production"):
-            if len(self.jwt_secret) < 32:
-                msg = "JWT_SECRET debe tener al menos 32 caracteres en staging/production."
-                raise ValueError(msg)
-        elif self.environment == "local":
-            if len(self.jwt_secret) < 16:
-                msg = "JWT_SECRET debe tener al menos 16 caracteres en local (fail-fast)."
-                raise ValueError(msg)
+        if self.environment == "test" and not self.jwt_secret.strip():
+            self.jwt_secret = "test_jwt_secret_" + "x" * 32
+        elif self.environment in ("staging", "production") and len(self.jwt_secret) < 32:
+            msg = "JWT_SECRET debe tener al menos 32 caracteres en staging/production."
+            raise ValueError(msg)
+        elif self.environment == "local" and len(self.jwt_secret) < 16:
+            msg = "JWT_SECRET debe tener al menos 16 caracteres en local (fail-fast)."
+            raise ValueError(msg)
 
         if not _looks_like_sqlalchemy_postgres(self.database_url):
             msg = "DATABASE_URL debe ser un DSN PostgreSQL (postgresql+psycopg o postgresql)."

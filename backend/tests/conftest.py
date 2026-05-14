@@ -22,5 +22,7 @@ def _reset_settings_cache_after_test() -> None:
     clear_settings_cache()
 
 
-def pytest_sessionfinish(_session, _exitstatus) -> None:  # type: ignore[no-untyped-def]
+def pytest_sessionfinish(session: object, exitstatus: object) -> None:
+    """Nombres `session`/`exitstatus` son obligatorios (hookspec de pytest/pluggy)."""
+    _ = (session, exitstatus)
     clear_settings_cache()
