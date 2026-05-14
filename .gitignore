@@ -85,6 +85,8 @@ celerybeat.pid
 .env.*.local
 .env.*
 !.env.example
+!frontend/.env.example
+!backend/.env.example
 !.env.test.example
 !.env.production.example
 !.env.development.example

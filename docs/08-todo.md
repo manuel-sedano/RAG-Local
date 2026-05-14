@@ -141,12 +141,12 @@ Reglas:
     - [x] ~~lockout progresivo por usuario~~ — `record_failed_password_attempt` + TTL exponencial acotado.
   - [x] ~~auditoría:~~
     - [x] ~~registrar `LOGIN_FAILED`, `LOGIN_SUCCESS`, `TOKEN_REFRESH`, `LOGOUT`~~ — `security_events` vía `auth_audit.py` / `auth_service.py`.
-- [ ] Frontend:
-  - [ ] UI login (shadcn/ui)
-  - [ ] estado de sesión (access/refresh)
-  - [ ] interceptor Axios para `401` → refresh → retry
-  - [ ] logout
-  - [ ] manejo de expiración y mensajes al usuario en español
+- [x] ~~Frontend:~~
+  - [x] ~~UI login (shadcn/ui)~~ — `src/app/login/` + Input/Label/Card.
+  - [x] ~~estado de sesión (access/refresh)~~ — `localStorage` + `AuthProvider` / `useAuth`.
+  - [x] ~~interceptor Axios para `401` → refresh → retry~~ — `src/lib/api-client.ts`.
+  - [x] ~~logout~~ — botón inicio + `POST /api/auth/logout` con `all_devices` si no hay refresh.
+  - [x] ~~manejo de expiración y mensajes al usuario en español~~ — aviso en login con `?expired=1`; errores de API en español donde aplica.
 - [ ] Testing:
   - [x] ~~unit tests hashing/JWT~~ — `tests/test_auth_crypto.py` (rate limit con Redis fake en memoria en el propio test).
   - [x] ~~integration tests login/refresh/logout~~ — `tests/test_auth_integration.py` (requiere `TEST_DATABASE_URL`).

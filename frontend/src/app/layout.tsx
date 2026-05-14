@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import { Providers } from "@/app/providers";
+
 export const metadata: Metadata = {
   title: "RAG Local",
   description: "Plataforma RAG local — frontend dev tooling",
@@ -13,7 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
