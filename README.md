@@ -142,7 +142,7 @@ Ampliación: `docs/05-architecture.md`, `docs/11-rag-flow.md`.
 
 1) Preparar WSL2 + Ubuntu 22.04 + Docker Desktop (`docs/01-deployment.md`).
 2) Clonar repositorio en el filesystem de WSL o en una ruta accesible (cuidando performance).
-3) Crear `.env` a partir de `docs/04-env-example.md`.
+3) Crear archivos locales: `cp .env.example .env` en la raíz; opcional `cp frontend/.env.example frontend/.env` y `cp backend/.env.example backend/.env`. Plantillas test/prod: `.env.test.example`, `.env.production.example` y equivalentes en `backend/` y `frontend/`. Detalle: `docs/04-env-example.md`.
 4) Ejecutar Docker Compose.
 5) Verificar:
    - Frontend: `http://localhost/` (o el host/puerto definido por Traefik)
@@ -177,7 +177,7 @@ Procedimiento detallado: `docs/01-deployment.md`.
 
 ## Variables de entorno
 
-- Plantilla comentada: `docs/04-env-example.md`.
+- Plantillas versionadas: `.env.example` (raíz), `backend/.env*.example`, `frontend/.env*.example`. Detalle: `docs/04-env-example.md`.
 - El archivo `.env` permanece fuera del control de versiones.
 
 ---
@@ -205,7 +205,21 @@ project/
 ├── uploads/           # Datos de usuario (`.gitkeep`; contenido ignorado).
 ├── docs/              # Índice: `docs/README.md`
 ├── scripts/           # Stubs bash: backup, reindex, reset-dev.
-├── .env               # No versionado; plantilla mental en `docs/04-env-example.md`.
+├── .env.example               # Plantilla raíz (Docker + backend)
+├── .env.test.example
+├── .env.production.example
+├── .env                       # Local (gitignore); copiar desde .env.example
+├── frontend/
+│   ├── .env.example
+│   ├── .env.development.example
+│   ├── .env.production.example
+│   ├── .env.test.example
+│   └── .env                   # Local (gitignore)
+├── backend/
+│   ├── .env.example
+│   ├── .env.test.example
+│   ├── .env.production.example
+│   └── .env                   # Local opcional (gitignore)
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md

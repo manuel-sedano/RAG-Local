@@ -1,6 +1,15 @@
 # Ejemplo de variables de entorno (`.env`)
 
-Plantilla de variables para ejecución local. Copia a la raíz del proyecto como `.env`.
+Plantilla de variables para ejecución local. Archivos versionados:
+
+| Archivo | Uso |
+|---------|-----|
+| `.env.example` | Raíz: stack completo (Docker + backend). |
+| `.env.test.example` / `.env.production.example` | Raíz: plantillas test / prod. |
+| `backend/.env.example` | Overrides backend; ver también la `.env` de la raíz. |
+| `frontend/.env.example` | Variables `NEXT_PUBLIC_*` para Next.js. |
+
+**Arranque rápido:** `cp .env.example .env` en la raíz; opcional `cp backend/.env.example backend/.env` y `cp frontend/.env.example frontend/.env`.
 
 Comentarios en español. El archivo `.env` queda fuera del control de versiones.
 
