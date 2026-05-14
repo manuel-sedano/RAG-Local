@@ -23,7 +23,10 @@ def test_root(client: TestClient) -> None:
     assert "/api/health" in body["api"]
 
 
-def test_health_ok_when_dependencies_up(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_ok_when_dependencies_up(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def _fake(_settings):
         return [
             DependencyResult(name="postgres", ok=True, latency_ms=1.0),
@@ -41,7 +44,10 @@ def test_health_ok_when_dependencies_up(client: TestClient, monkeypatch: pytest.
     assert all(dep["ok"] for dep in body["dependencies"].values())
 
 
-def test_health_503_when_dependency_down(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_503_when_dependency_down(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def _fake(_settings):
         return [
             DependencyResult(name="postgres", ok=True, latency_ms=1.0),
@@ -58,7 +64,10 @@ def test_health_503_when_dependency_down(client: TestClient, monkeypatch: pytest
     assert body["dependencies"]["redis"]["ok"] is False
 
 
-def test_request_id_header_roundtrip(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_request_id_header_roundtrip(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def _fake(_settings):
         return [
             DependencyResult(name="postgres", ok=True, latency_ms=1.0),

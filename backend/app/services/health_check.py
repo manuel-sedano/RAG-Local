@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -32,13 +33,14 @@ async def check_postgres(settings: Settings) -> DependencyResult:
     started = time.perf_counter()
     conninfo = _to_psycopg_conninfo(settings.database_url)
     try:
-        async with await psycopg.AsyncConnection.connect(
-            conninfo,
-            connect_timeout=int(settings.health_http_timeout_seconds),
-        ) as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("SELECT 1")
-                await cur.fetchone()
+        async with (
+            await psycopg.AsyncConnection.connect(
+                conninfo,
+                connect_timeout=int(settings.health_http_timeout_seconds),
+            )
+        ) as conn, conn.cursor() as cur:
+            await cur.execute("SELECT 1")
+            await cur.fetchone()
         latency_ms = (time.perf_counter() - started) * 1000
         return DependencyResult(name="postgres", ok=True, latency_ms=round(latency_ms, 2))
     except Exception as exc:  # noqa: BLE001 — health: cualquier fallo cuenta
@@ -70,10 +72,8 @@ async def check_redis(settings: Settings) -> DependencyResult:
             latency_ms=round(latency_ms, 2),
         )
     finally:
-        try:
+        with contextlib.suppress(Exception):
             await client.aclose()
-        except Exception:
-            pass
 
 
 async def check_qdrant(settings: Settings) -> DependencyResult:
