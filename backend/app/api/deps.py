@@ -1,5 +1,7 @@
 """Dependencias FastAPI (DB, usuario actual, roles, acceso a KB)."""
 
+# ruff: noqa: I001 — isort agrupa imports de forma distinta a la legibilidad aquí (FastAPI + SQLAlchemy + app).
+
 from __future__ import annotations
 
 import uuid
@@ -12,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
-from app.models.knowledge_base import KnowledgeBase, KbMembership
+from app.models.knowledge_base import KbMembership, KnowledgeBase
 from app.models.user import User
 from app.services.jwt_tokens import decode_access_token
 

@@ -34,7 +34,7 @@ def _lockout_key(user_id: str) -> str:
 
 
 def check_login_rate_limits(
-    redis_client: "Redis | None",
+    redis_client: Redis | None,
     *,
     settings: Settings,
     ip: str,
@@ -73,7 +73,7 @@ def check_login_rate_limits(
 
 
 def check_refresh_rate_limit(
-    redis_client: "Redis | None",
+    redis_client: Redis | None,
     *,
     settings: Settings,
     ip: str,
@@ -97,7 +97,7 @@ def check_refresh_rate_limit(
         )
 
 
-def check_user_lockout(redis_client: "Redis | None", *, settings: Settings, user_id: str) -> None:
+def check_user_lockout(redis_client: Redis | None, *, settings: Settings, user_id: str) -> None:
     if redis_client is None:
         return
     ttl = redis_client.ttl(_lockout_key(user_id))
@@ -113,7 +113,7 @@ def check_user_lockout(redis_client: "Redis | None", *, settings: Settings, user
 
 
 def record_failed_password_attempt(
-    redis_client: "Redis | None",
+    redis_client: Redis | None,
     *,
     settings: Settings,
     user_id: str,
@@ -124,7 +124,11 @@ def record_failed_password_attempt(
     redis_client.expire(_fails_key(user_id), settings.auth_lockout_max_seconds * 4)
     if n < settings.auth_failed_password_threshold:
         return
-    k = max(0, (n - settings.auth_failed_password_threshold) // settings.auth_failed_password_threshold)
+    k = max(
+        0,
+        (n - settings.auth_failed_password_threshold)
+        // settings.auth_failed_password_threshold,
+    )
     seconds = min(
         settings.auth_lockout_max_seconds,
         int(settings.auth_lockout_base_seconds * (2**k)),
@@ -132,7 +136,7 @@ def record_failed_password_attempt(
     redis_client.setex(_lockout_key(user_id), seconds, "1")
 
 
-def clear_password_fail_counters(redis_client: "Redis | None", *, user_id: str) -> None:
+def clear_password_fail_counters(redis_client: Redis | None, *, user_id: str) -> None:
     if redis_client is None:
         return
     redis_client.delete(_fails_key(user_id), _lockout_key(user_id))

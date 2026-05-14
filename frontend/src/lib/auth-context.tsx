@@ -40,8 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
-    setUser(readStoredUser());
-    setReady(true);
+    React.startTransition(() => {
+      setUser(readStoredUser());
+      setReady(true);
+    });
   }, []);
 
   React.useEffect(() => {

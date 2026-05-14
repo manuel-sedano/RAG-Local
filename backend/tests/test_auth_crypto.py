@@ -17,7 +17,7 @@ from app.services.passwords import hash_password, verify_password
 class _FakePipeline:
     """Soporta la secuencia incr → expire usada por `check_login_rate_limits`."""
 
-    def __init__(self, client: "_FakeRedis") -> None:
+    def __init__(self, client: _FakeRedis) -> None:
         self._c = client
         self._ops: list[tuple[Any, ...]] = []
 

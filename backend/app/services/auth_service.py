@@ -6,7 +6,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -102,10 +102,7 @@ def rotate_refresh_token(
             },
         )
     exp = old.expires_at
-    if exp.tzinfo is None:
-        exp = exp.replace(tzinfo=UTC)
-    else:
-        exp = exp.astimezone(UTC)
+    exp = exp.replace(tzinfo=UTC) if exp.tzinfo is None else exp.astimezone(UTC)
     if exp < datetime.now(UTC):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,

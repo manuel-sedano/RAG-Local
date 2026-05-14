@@ -23,7 +23,7 @@ function redirectToLoginIfNeeded(): void {
  * Si `NEXT_PUBLIC_API_BASE_URL` termina en `/api`, se quita para evitar `/api/api/...`.
  */
 export function getApiBaseUrl(): string {
-  let base = (process.env.NEXT_PUBLIC_API_BASE_URL).trim();
+  let base = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000").trim();
   base = base.replace(/\/+$/, "");
   base = base.replace(/\/api\/?$/i, "");
   return base;
