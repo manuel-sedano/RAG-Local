@@ -90,7 +90,7 @@ Login con usuario/contraseña.
 ```json
 {
   "access_token": "jwt",
-  "refresh_token": "jwt",
+  "refresh_token": "opaque-urlsafe-string",
   "token_type": "bearer",
   "expires_in": 900,
   "user": {
@@ -114,16 +114,18 @@ Intercambia refresh token por un nuevo access token (y refresh rotatorio si apli
 
 ```json
 {
-  "refresh_token": "jwt"
+  "refresh_token": "opaque-urlsafe-string"
 }
 ```
+
+El `refresh_token` es un **token opaco** almacenado en base de datos como hash (rotación en cada refresh).
 
 **Response 200**
 
 ```json
 {
   "access_token": "jwt",
-  "refresh_token": "jwt",
+  "refresh_token": "opaque-urlsafe-string",
   "token_type": "bearer",
   "expires_in": 900
 }
@@ -141,7 +143,7 @@ Revoca refresh token actual (y/o todos si `all_devices=true`).
 
 ```json
 {
-  "refresh_token": "jwt",
+  "refresh_token": "opaque-urlsafe-string",
   "all_devices": false
 }
 ```

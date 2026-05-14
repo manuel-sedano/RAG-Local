@@ -118,29 +118,29 @@ Reglas:
 
 ### Feature branch: `feat/auth-jwt`
 
-- [ ] Backend:
-  - [ ] modelo `User` + validaciones (email único, is_active)
-  - [ ] hashing de passwords (Argon2id o bcrypt con costo alto)
-  - [ ] servicio JWT:
-    - [ ] emitir access token con TTL corto
-    - [ ] emitir refresh token con TTL largo
-    - [ ] incluir `jti` en access
-  - [ ] refresh token store:
-    - [ ] persistir hash de refresh en DB
-    - [ ] rotación de refresh (invalidate old, create new)
-    - [ ] revocación por logout
-  - [ ] endpoints:
-    - [ ] `POST /api/auth/login`
-    - [ ] `POST /api/auth/refresh`
-    - [ ] `POST /api/auth/logout`
-  - [ ] dependencias FastAPI:
-    - [ ] `get_current_user` (bearer)
-    - [ ] `require_role` / `require_kb_access`
-  - [ ] rate limit:
-    - [ ] login rate limit por IP + email
-    - [ ] lockout progresivo por usuario
-  - [ ] auditoría:
-    - [ ] registrar `LOGIN_FAILED`, `LOGIN_SUCCESS`, `TOKEN_REFRESH`, `LOGOUT`
+- [x] ~~Backend:~~
+  - [x] ~~modelo `User` + validaciones (email único, is_active)~~ — modelo en esquema; login con `EmailStr` + email normalizado a minúsculas.
+  - [x] ~~hashing de passwords (Argon2id o bcrypt con costo alto)~~ — Argon2id + `PASSWORD_PEPPER` (`app/services/passwords.py`).
+  - [x] ~~servicio JWT:~~
+    - [x] ~~emitir access token con TTL corto~~ — `jwt_access_token_expires_seconds` (default 900s).
+    - [x] ~~emitir refresh token con TTL largo~~ — token opaco + fila `refresh_tokens` con `jwt_refresh_token_expires_seconds`.
+    - [x] ~~incluir `jti` en access~~ — `app/services/jwt_tokens.py`.
+  - [x] ~~refresh token store:~~
+    - [x] ~~persistir hash de refresh en DB~~ — SHA-256 del token opaco en `token_hash`.
+    - [x] ~~rotación de refresh (invalidate old, create new)~~ — `rotate_refresh_token` en `auth_service.py`.
+    - [x] ~~revocación por logout~~ — `revoked_at` + `all_devices` revoca todas las filas activas.
+  - [x] ~~endpoints:~~
+    - [x] ~~`POST /api/auth/login`~~ — `app/api/routes/auth.py`
+    - [x] ~~`POST /api/auth/refresh`~~
+    - [x] ~~`POST /api/auth/logout`~~
+  - [x] ~~dependencias FastAPI:~~
+    - [x] ~~`get_current_user` (bearer)~~
+    - [x] ~~`require_role` / `require_kb_access`~~ — `require_app_roles(...)` y `require_kb_access` / `ensure_kb_access` en `app/api/deps.py`.
+  - [x] ~~rate limit:~~
+    - [x] ~~login rate limit por IP + email~~ — Redis + `check_login_rate_limits` (si Redis no conecta, se omite).
+    - [x] ~~lockout progresivo por usuario~~ — `record_failed_password_attempt` + TTL exponencial acotado.
+  - [x] ~~auditoría:~~
+    - [x] ~~registrar `LOGIN_FAILED`, `LOGIN_SUCCESS`, `TOKEN_REFRESH`, `LOGOUT`~~ — `security_events` vía `auth_audit.py` / `auth_service.py`.
 - [ ] Frontend:
   - [ ] UI login (shadcn/ui)
   - [ ] estado de sesión (access/refresh)
@@ -148,11 +148,11 @@ Reglas:
   - [ ] logout
   - [ ] manejo de expiración y mensajes al usuario en español
 - [ ] Testing:
-  - [ ] unit tests hashing/JWT
-  - [ ] integration tests login/refresh/logout
-  - [ ] tests de lockout/rate limit (básicos)
-- [ ] Docs:
-  - [ ] confirmar que `docs/09-api-spec.md` coincide con implementación real
+  - [x] ~~unit tests hashing/JWT~~ — `tests/test_auth_crypto.py` (rate limit con fakeredis).
+  - [x] ~~integration tests login/refresh/logout~~ — `tests/test_auth_integration.py` (requiere `TEST_DATABASE_URL`).
+  - [ ] tests de lockout/rate limit con **Redis real** (opcional; hoy fakeredis + integración sin Redis dedicado).
+- [x] ~~Docs:~~
+  - [x] ~~confirmar que `docs/09-api-spec.md` coincide con implementación real~~ — refresh opaco documentado; contrato login/refresh/logout alineado.
 
 ---
 
