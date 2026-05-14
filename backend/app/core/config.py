@@ -1,0 +1,111 @@
+"""Carga y validación de configuración (Pydantic Settings)."""
+
+from __future__ import annotations
+
+import re
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field, computed_field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Variables de entorno con validación al instanciar."""
+
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../.env"),
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+    )
+
+    environment: Literal["local", "test", "staging", "production"] = Field(
+        default="local",
+        description="Entorno de ejecución; `test` relaja validaciones de secretos.",
+    )
+
+    log_level: str = Field(default="INFO")
+
+    cors_allow_origins: str = Field(
+        default=(
+            "http://localhost:3000,http://localhost,http://127.0.0.1:3000,"
+            "http://127.0.0.1"
+        ),
+    )
+
+    backend_host: str = Field(default="0.0.0.0")
+    backend_port: int = Field(default=8000)
+
+    jwt_secret: str = Field(default="", repr=False)
+
+    database_url: str = Field(
+        default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
+        repr=False,
+    )
+
+    redis_host: str = Field(default="redis")
+    redis_port: int = Field(default=6379)
+
+    qdrant_host: str = Field(default="qdrant")
+    qdrant_port: int = Field(default=6333)
+
+    ollama_host: str = Field(default="ollama")
+    ollama_port: int = Field(default=11434)
+
+    health_http_timeout_seconds: float = Field(default=3.0)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def redis_url(self) -> str:
+        return f"redis://{self.redis_host}:{self.redis_port}/0"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def qdrant_http_url(self) -> str:
+        return f"http://{self.qdrant_host}:{self.qdrant_port}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def ollama_http_url(self) -> str:
+        return f"http://{self.ollama_host}:{self.ollama_port}"
+
+    @model_validator(mode="after")
+    def validate_boot(self) -> Settings:
+        if self.environment == "test":
+            if not self.jwt_secret.strip():
+                self.jwt_secret = "test_jwt_secret_" + "x" * 32
+            return self
+
+        if self.environment in ("staging", "production"):
+            if len(self.jwt_secret) < 32:
+                msg = "JWT_SECRET debe tener al menos 32 caracteres en staging/production."
+                raise ValueError(msg)
+        elif self.environment == "local":
+            if len(self.jwt_secret) < 16:
+                msg = "JWT_SECRET debe tener al menos 16 caracteres en local (fail-fast)."
+                raise ValueError(msg)
+
+        if not _looks_like_sqlalchemy_postgres(self.database_url):
+            msg = "DATABASE_URL debe ser un DSN PostgreSQL (postgresql+psycopg o postgresql)."
+            raise ValueError(msg)
+
+        return self
+
+
+def _looks_like_sqlalchemy_postgres(url: str) -> bool:
+    return bool(re.match(r"^postgresql(\+[\w]+)?://", url.strip()))
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+def clear_settings_cache() -> None:
+    get_settings.cache_clear()
