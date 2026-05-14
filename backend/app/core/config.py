@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     backend_port: int = Field(default=8000)
 
     jwt_secret: str = Field(default="", repr=False)
+    jwt_alg: str = Field(default="HS256")
+    jwt_access_token_expires_seconds: int = Field(default=900, ge=1)
+    jwt_refresh_token_expires_seconds: int = Field(default=2_592_000, ge=60)
+
+    password_pepper: str = Field(default="", repr=False)
+
+    auth_login_max_attempts_per_ip_per_minute: int = Field(default=30, ge=1)
+    auth_login_max_attempts_per_email_per_minute: int = Field(default=15, ge=1)
+    auth_failed_password_threshold: int = Field(default=5, ge=1)
+    auth_lockout_base_seconds: int = Field(default=60, ge=1)
+    auth_lockout_max_seconds: int = Field(default=3600, ge=1)
 
     database_url: str = Field(
         default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
@@ -84,6 +95,15 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         elif self.environment == "local" and len(self.jwt_secret) < 16:
             msg = "JWT_SECRET debe tener al menos 16 caracteres en local (fail-fast)."
+            raise ValueError(msg)
+
+        if self.environment == "test" and not self.password_pepper.strip():
+            self.password_pepper = "test_password_pepper_" + "x" * 32
+        elif self.environment in ("staging", "production") and len(self.password_pepper) < 32:
+            msg = "PASSWORD_PEPPER debe tener al menos 32 caracteres en staging/production."
+            raise ValueError(msg)
+        elif self.environment == "local" and len(self.password_pepper) < 16:
+            msg = "PASSWORD_PEPPER debe tener al menos 16 caracteres en local (fail-fast)."
             raise ValueError(msg)
 
         if not _looks_like_sqlalchemy_postgres(self.database_url):

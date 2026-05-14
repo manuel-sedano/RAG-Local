@@ -148,9 +148,9 @@ Reglas:
   - [ ] logout
   - [ ] manejo de expiración y mensajes al usuario en español
 - [ ] Testing:
-  - [x] ~~unit tests hashing/JWT~~ — `tests/test_auth_crypto.py` (rate limit con fakeredis).
+  - [x] ~~unit tests hashing/JWT~~ — `tests/test_auth_crypto.py` (rate limit con Redis fake en memoria en el propio test).
   - [x] ~~integration tests login/refresh/logout~~ — `tests/test_auth_integration.py` (requiere `TEST_DATABASE_URL`).
-  - [ ] tests de lockout/rate limit con **Redis real** (opcional; hoy fakeredis + integración sin Redis dedicado).
+  - [ ] tests de lockout/rate limit con **Redis real** (opcional; hoy fake en memoria en tests unitarios).
 - [x] ~~Docs:~~
   - [x] ~~confirmar que `docs/09-api-spec.md` coincide con implementación real~~ — refresh opaco documentado; contrato login/refresh/logout alineado.
 

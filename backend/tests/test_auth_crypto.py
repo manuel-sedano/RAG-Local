@@ -1,10 +1,10 @@
-"""Tests unitarios de hashing, JWT y rate limit (sin Postgres)."""
+"""Tests unitarios de hashing, JWT y rate limit (sin Postgres ni fakeredis)."""
 
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
-import fakeredis
 import pytest
 from fastapi import HTTPException
 
@@ -12,6 +12,66 @@ from app.core.config import Settings, clear_settings_cache, get_settings
 from app.services.jwt_tokens import create_access_token, decode_access_token
 from app.services.login_rate_limit import check_login_rate_limits, check_refresh_rate_limit
 from app.services.passwords import hash_password, verify_password
+
+
+class _FakePipeline:
+    """Soporta la secuencia incr → expire usada por `check_login_rate_limits`."""
+
+    def __init__(self, client: "_FakeRedis") -> None:
+        self._c = client
+        self._ops: list[tuple[Any, ...]] = []
+
+    def incr(self, key: str, amount: int = 1) -> _FakePipeline:
+        self._ops.append(("incr", key, amount))
+        return self
+
+    def expire(self, key: str, ttl: int) -> _FakePipeline:
+        self._ops.append(("expire", key, ttl))
+        return self
+
+    def execute(self) -> list[Any]:
+        out: list[Any] = []
+        for op in self._ops:
+            if op[0] == "incr":
+                out.append(self._c.incr(op[1], op[2]))
+            else:
+                out.append(self._c.expire(op[1], op[2]))
+        self._ops.clear()
+        return out
+
+
+class _FakeRedis:
+    """Redis mínimo en memoria (compatible con tests de rate limit)."""
+
+    def __init__(self) -> None:
+        self._int_counts: dict[str, int] = {}
+
+    def incr(self, key: str, amount: int = 1) -> int:
+        self._int_counts[key] = self._int_counts.get(key, 0) + int(amount)
+        return self._int_counts[key]
+
+    def expire(self, key: str, _ttl: int) -> bool:
+        _ = key, _ttl
+        return True
+
+    def pipeline(self) -> _FakePipeline:
+        return _FakePipeline(self)
+
+    def delete(self, *keys: str) -> int:
+        n = 0
+        for k in keys:
+            if k in self._int_counts:
+                del self._int_counts[k]
+                n += 1
+        return n
+
+    def ttl(self, key: str) -> int:
+        _ = key
+        return -1
+
+    def setex(self, key: str, seconds: int, value: str) -> bool:
+        _ = key, seconds, value
+        return True
 
 
 def _test_settings(**kwargs: object) -> Settings:
@@ -58,7 +118,7 @@ def test_rate_limit_ip_blocks() -> None:
         auth_login_max_attempts_per_ip_per_minute=2,
         auth_login_max_attempts_per_email_per_minute=50,
     )
-    r = fakeredis.FakeRedis(decode_responses=True)
+    r = _FakeRedis()
     check_login_rate_limits(r, settings=s, ip="1.1.1.1", email_normalized="u@x.co")
     check_login_rate_limits(r, settings=s, ip="1.1.1.1", email_normalized="u@x.co")
     with pytest.raises(HTTPException) as ei:
@@ -68,7 +128,7 @@ def test_rate_limit_ip_blocks() -> None:
 
 def test_refresh_rate_limit() -> None:
     s = _test_settings(auth_login_max_attempts_per_ip_per_minute=2)
-    r = fakeredis.FakeRedis(decode_responses=True)
+    r = _FakeRedis()
     check_refresh_rate_limit(r, settings=s, ip="2.2.2.2")
     check_refresh_rate_limit(r, settings=s, ip="2.2.2.2")
     with pytest.raises(HTTPException) as ei:
