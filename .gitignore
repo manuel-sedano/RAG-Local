@@ -76,10 +76,18 @@ celerybeat-schedule
 celerybeat-schedule.*
 celerybeat.pid
 
-# Environment & secrets
+# Environment & secrets (no subir `.env` reales; sí plantillas `*.example`)
 .env
+.env.development
+.env.production
+.env.test
+.env.local
+.env.*.local
 .env.*
 !.env.example
+!.env.test.example
+!.env.production.example
+!.env.development.example
 
 # Uploads & user data (keep empty tree with .gitkeep)
 uploads/**
