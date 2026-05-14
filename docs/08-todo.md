@@ -162,27 +162,27 @@ Reglas:
 
 ### Feature branch: `feat/kb-crud`
 
-- [ ] Backend:
-  - [ ] modelo `KnowledgeBase`
-  - [ ] (si multiusuario) modelo `kb_memberships` y roles por KB
-  - [ ] endpoints:
-    - [ ] `GET /api/kbs`
-    - [ ] `POST /api/kbs`
-    - [ ] `GET /api/kbs/{kb_id}`
-    - [ ] `PATCH /api/kbs/{kb_id}`
-    - [ ] `DELETE /api/kbs/{kb_id}` (soft delete)
-  - [ ] autorización:
-    - [ ] validar acceso por KB en cada endpoint
-  - [ ] eventos/auditoría:
-    - [ ] `KB_CREATED`, `KB_UPDATED`, `KB_DELETED`
-- [ ] Frontend:
-  - [ ] vista lista KB
-  - [ ] crear/editar/eliminar KB
-  - [ ] selector de KB activo
-  - [ ] estados vacíos y errores claros (en español)
-- [ ] Testing:
-  - [ ] tests CRUD KB
-  - [ ] tests autorización (no acceder KB ajena)
+- [x] ~~Backend:~~
+  - [x] ~~modelo `KnowledgeBase`~~ — ya en esquema Alembic; CRUD en `kbs.py` + `kb_service.py`.
+  - [x] ~~(si multiusuario) modelo `kb_memberships` y roles por KB~~ — modelo existente; permisos `viewer`/`editor`/`owner` vía `require_kb_access`.
+  - [x] ~~endpoints:~~
+    - [x] ~~`GET /api/kbs`~~
+    - [x] ~~`POST /api/kbs`~~
+    - [x] ~~`GET /api/kbs/{kb_id}`~~
+    - [x] ~~`PATCH /api/kbs/{kb_id}`~~
+    - [x] ~~`DELETE /api/kbs/{kb_id}` (soft delete)~~
+  - [x] ~~autorización:~~
+    - [x] ~~validar acceso por KB en cada endpoint~~
+  - [x] ~~eventos/auditoría:~~
+    - [x] ~~`KB_CREATED`, `KB_UPDATED`, `KB_DELETED`~~
+- [x] ~~Frontend:~~
+  - [x] ~~vista lista KB~~ — `/kbs`
+  - [x] ~~crear/editar/eliminar KB~~
+  - [x] ~~selector de KB activo~~ — inicio + botón «Usar como activa» en `/kbs` (`localStorage`)
+  - [x] ~~estados vacíos y errores claros (en español)~~
+- [x] ~~Testing:~~
+  - [x] ~~tests CRUD KB~~ — `tests/test_kb_integration.py` (con `TEST_DATABASE_URL`)
+  - [x] ~~tests autorización (no acceder KB ajena)~~ — mismo archivo (403 sin membresía; viewer sin PATCH)
 
 ---
 

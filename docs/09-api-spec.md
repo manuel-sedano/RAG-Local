@@ -251,6 +251,8 @@ Actualiza nombre/descripcion.
 
 Elimina KB (soft delete recomendado). Opcional: “revoke access” para multi-tenant.
 
+**Auditoría** (`security_events.kind`): `KB_CREATED`, `KB_UPDATED`, `KB_DELETED` con `details.kb_id` (UUID en string) y campos relevantes (`name`, etc.).
+
 ---
 
 ## Documentos
