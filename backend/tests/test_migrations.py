@@ -3,16 +3,39 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine.url import make_url
 
 from app.core.config import clear_settings_cache
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _ensure_database_exists(url: str) -> None:
+    """Crea la base indicada en el DSN si no existe (conexión a `postgres`)."""
+    u = make_url(url)
+    dbname = u.database or ""
+    if not dbname or dbname in ("postgres", "template0", "template1"):
+        return
+    if not re.fullmatch(r"[A-Za-z0-9_]+", dbname):
+        msg = f"TEST_DATABASE_URL: nombre de base no seguro para DDL: {dbname!r}"
+        raise ValueError(msg)
+    admin = u.set(database="postgres")
+    engine = create_engine(admin, isolation_level="AUTOCOMMIT")
+    with engine.connect() as conn:
+        exists = conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = :name"),
+            {"name": dbname},
+        ).first()
+        if exists is None:
+            conn.execute(text(f'CREATE DATABASE "{dbname}"'))
+    engine.dispose()
 
 
 @pytest.fixture(scope="session")
@@ -23,6 +46,7 @@ def postgres_migration_url() -> str:
         pytest.skip(
             "Define TEST_DATABASE_URL (Postgres de test) para pruebas de migración."
         )
+    _ensure_database_exists(url)
     return url
 
 
