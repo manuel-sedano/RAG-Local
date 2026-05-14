@@ -8,7 +8,14 @@ version = "0.1.0"
 description = "Backend API y workers (FastAPI) — dev tooling en chore/dev-tooling."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "fastapi>=0.115",
+  "httpx>=0.27",
+  "psycopg[binary]>=3.2",
+  "pydantic-settings>=2.6",
+  "redis>=5.2",
+  "uvicorn[standard]>=0.32",
+]
 
 [project.optional-dependencies]
 dev = [
