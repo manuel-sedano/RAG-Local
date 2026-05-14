@@ -102,8 +102,8 @@ data/
 logs/
 .cache/
 
-# ML / models (large binaries)
-models/
+# ML / model weights at repo root (no confundir con backend/app/models ORM)
+/models/
 *.gguf
 *.bin
 *.onnx

@@ -90,25 +90,25 @@ Reglas:
 
 ### Feature branch: `feat/db-schema-alembic`
 
-- [ ] DB:
-  - [ ] definir modelos SQLAlchemy para tablas core:
-    - [ ] `users`
-    - [ ] `refresh_tokens`
-    - [ ] `knowledge_bases`
-    - [ ] `kb_memberships` (si multiusuario)
-    - [ ] `documents`
-    - [ ] `document_ingestion_runs`
-    - [ ] `chunks`
-    - [ ] `chats`
-    - [ ] `chat_messages`
-    - [ ] `message_citations`
-    - [ ] `security_events` (opcional)
-    - [ ] `rate_limit_events` (opcional)
-  - [ ] crear migraciones Alembic iniciales
-  - [ ] crear índices recomendados (GIN/BTREE)
-- [ ] Testing:
-  - [ ] fixture de DB test (Postgres en Docker o sqlite compatible si viable)
-  - [ ] test de migración (alembic upgrade head)
+- [x] ~~DB:~~
+  - [x] ~~definir modelos SQLAlchemy para tablas core:~~
+    - [x] ~~`users`~~
+    - [x] ~~`refresh_tokens`~~
+    - [x] ~~`knowledge_bases`~~
+    - [x] ~~`kb_memberships` (multiusuario)~~
+    - [x] ~~`documents`~~
+    - [x] ~~`document_ingestion_runs`~~
+    - [x] ~~`chunks`~~
+    - [x] ~~`chats`~~
+    - [x] ~~`chat_messages`~~
+    - [x] ~~`message_citations`~~
+    - [x] ~~`security_events` (opcional)~~
+    - [x] ~~`rate_limit_events` (opcional)~~
+  - [x] ~~crear migraciones Alembic iniciales~~
+  - [x] ~~crear índices recomendados (GIN/BTREE)~~
+- [x] ~~Testing:~~
+  - [x] ~~fixture de DB test (Postgres en Docker o sqlite compatible si viable)~~
+  - [x] ~~test de migración (alembic upgrade head)~~
 
 ---
 
