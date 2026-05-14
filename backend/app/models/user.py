@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.chat import Chat
+    from app.models.document import Document
+    from app.models.knowledge_base import KbMembership, KnowledgeBase
 
 
 class User(Base):
@@ -34,19 +40,19 @@ class User(Base):
         onupdate=func.now(),
     )
 
-    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(  # noqa: UP037
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
-    owned_knowledge_bases: Mapped[list["KnowledgeBase"]] = relationship(
+    owned_knowledge_bases: Mapped[list[KnowledgeBase]] = relationship(
         "KnowledgeBase", back_populates="owner", foreign_keys="KnowledgeBase.owner_user_id"
     )
-    kb_memberships: Mapped[list["KbMembership"]] = relationship(
+    kb_memberships: Mapped[list[KbMembership]] = relationship(
         "KbMembership", back_populates="user", cascade="all, delete-orphan"
     )
-    uploaded_documents: Mapped[list["Document"]] = relationship(
+    uploaded_documents: Mapped[list[Document]] = relationship(
         "Document", back_populates="uploaded_by", foreign_keys="Document.uploaded_by_user_id"
     )
-    chats_created: Mapped[list["Chat"]] = relationship(
+    chats_created: Mapped[list[Chat]] = relationship(
         "Chat", back_populates="created_by", foreign_keys="Chat.created_by_user_id"
     )
 

@@ -81,6 +81,9 @@ services:
     image: redis:7-alpine
     container_name: rag_redis
     restart: unless-stopped
+    # Desde el host (WSL) para pytest con TEST_REDIS_URL y herramientas locales
+    ports:
+      - "127.0.0.1:6379:6379"
     networks:
       - rag_net
     healthcheck:

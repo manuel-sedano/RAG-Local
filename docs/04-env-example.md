@@ -79,6 +79,19 @@ DATABASE_URL=postgresql+psycopg://rag:rag_password_local@postgres:5432/rag
 
 ---
 
+## Frontend (Next.js)
+
+Expuesto al navegador solo variables `NEXT_PUBLIC_*`. Ejemplo en `frontend/.env.example`.
+
+```bash
+# Origen del backend (host:puerto). Sin barra final y sin sufijo /api (el cliente ya pide /api/...).
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Copia a `frontend/.env.local` y ajusta si el API corre en otro host/puerto. Si por error pones `.../api`, el front lo normaliza quitando `/api` para no duplicar rutas. El backend debe incluir el origen del front en `CORS_ALLOW_ORIGINS` (p. ej. `http://localhost:3000`).
+
+---
+
 ## Redis / Celery
 
 ```bash
