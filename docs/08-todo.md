@@ -150,7 +150,7 @@ Reglas:
 - [ ] Testing:
   - [x] ~~unit tests hashing/JWT~~ — `tests/test_auth_crypto.py` (rate limit con Redis fake en memoria en el propio test).
   - [x] ~~integration tests login/refresh/logout~~ — `tests/test_auth_integration.py` (requiere `TEST_DATABASE_URL`).
-  - [ ] tests de lockout/rate limit con **Redis real** (opcional; hoy fake en memoria en tests unitarios).
+  - [x] ~~tests de lockout/rate limit con **Redis real** (opcional; hoy fake en memoria en tests unitarios)~~ — `tests/test_auth_redis.py` con `TEST_REDIS_URL` (p. ej. `redis://127.0.0.1:6379/15`).
 - [x] ~~Docs:~~
   - [x] ~~confirmar que `docs/09-api-spec.md` coincide con implementación real~~ — refresh opaco documentado; contrato login/refresh/logout alineado.
 
