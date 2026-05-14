@@ -9,10 +9,13 @@ entryPoints:
     address: ":443"
 
 providers:
-  docker:
-    endpoint: unix:///var/run/docker.sock
-    exposedByDefault: false
-    network: rag_net
+  # Provider Docker desactivado: en WSL + Docker Desktop el cliente embebido a veces
+  # falla con "Error response from daemon" y Traefik no registra rutas (404 en :80).
+  # Las rutas del bootstrap están en `dynamic/bootstrap.yml` (DNS interno: frontend, backend, …).
+  # Para volver a labels en contenedores, reactiva `docker:` y el volumen del socket en compose.
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
 
 api:
   dashboard: true

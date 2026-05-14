@@ -48,6 +48,8 @@ docker compose ps
 
   Debe devolver JSON con `"status":"ok"` y `"service":"backend-placeholder"`.
 
+- **Traefik y Docker:** el bootstrap usa el **provider `file`** (`docker/traefik/dynamic/bootstrap.yml`) para enrutar a los servicios por nombre DNS interno, sin depender del socket Docker (evita 404 en entornos WSL + Docker Desktop donde el cliente embebido falla).
+
 ---
 
 ## 3. PostgreSQL y Redis (solo red interna)

@@ -1,0 +1,60 @@
+# Rutas estáticas (DNS interno Compose). Evita depender del provider Docker cuando
+# el socket/API no es compatible con el cliente embebido de Traefik (p. ej. algunos entornos WSL + Docker Desktop).
+http:
+  routers:
+    rag-backend:
+      rule: PathPrefix(`/api`)
+      entryPoints:
+        - web
+      service: rag-backend-svc
+      priority: 100
+    rag-prometheus:
+      rule: PathPrefix(`/prometheus`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-prometheus-stripprefix
+      service: rag-prometheus-svc
+      priority: 80
+    rag-grafana:
+      rule: PathPrefix(`/grafana`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-grafana-stripprefix
+      service: rag-grafana-svc
+      priority: 80
+    rag-frontend:
+      rule: PathPrefix(`/`)
+      entryPoints:
+        - web
+      service: rag-frontend-svc
+      priority: 1
+
+  middlewares:
+    rag-prometheus-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /prometheus
+    rag-grafana-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /grafana
+
+  services:
+    rag-backend-svc:
+      loadBalancer:
+        servers:
+          - url: http://backend:80
+    rag-frontend-svc:
+      loadBalancer:
+        servers:
+          - url: http://frontend:80
+    rag-prometheus-svc:
+      loadBalancer:
+        servers:
+          - url: http://prometheus:9090
+    rag-grafana-svc:
+      loadBalancer:
+        servers:
+          - url: http://grafana:3000
