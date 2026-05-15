@@ -334,20 +334,20 @@ Reglas:
 
 ### Feature branch: `feat/embeddings-bge-m3`
 
-- [ ] Integrar Sentence Transformers:
-  - [ ] cargar modelo `bge-m3`
-  - [ ] batching
-  - [ ] normalización
-- [ ] Robustez:
-  - [ ] timeouts
-  - [ ] manejo de OOM (reducir batch)
-  - [ ] colas de embeddings separadas
-- [ ] Trazabilidad:
-  - [ ] persistir `embedding_model` en `chunks`
-  - [ ] guardar `qdrant_point_id` en DB
-- [ ] Tests:
-  - [ ] embedding determinista para texto fijo (aprox)
-  - [ ] comportamiento con batching
+- [x] ~~Integrar Sentence Transformers:~~
+  - [x] ~~cargar modelo `bge-m3`~~ — `app/services/embeddings/sentence_transformer.py` + extra `pip install -e '.[embeddings]'`.
+  - [x] ~~batching~~ — `embed_texts` / `embed_document_chunks` con `EMBEDDING_BATCH_SIZE`.
+  - [x] ~~normalización~~ — `EMBEDDING_NORMALIZE` (L2 en ST y fake).
+- [x] ~~Robustez:~~
+  - [x] ~~timeouts~~ — `EMBEDDING_TIMEOUT_SECONDS` por batch.
+  - [x] ~~manejo de OOM (reducir batch)~~ — backoff hasta `EMBEDDING_BATCH_SIZE_MIN`.
+  - [x] ~~colas de embeddings separadas~~ — `app.tasks.embed.embed_document_chunks` → cola `embed`.
+- [x] ~~Trazabilidad:~~
+  - [x] ~~persistir `embedding_model` en `chunks`~~ — `embedding_model_label` (`bge-m3`).
+  - [x] ~~guardar `qdrant_point_id` en DB~~ — UUID del chunk (`stable_qdrant_point_id`).
+- [x] ~~Tests:~~
+  - [x] ~~embedding determinista para texto fijo (aprox)~~ — `tests/test_embeddings.py` (backend fake en `ENVIRONMENT=test`).
+  - [x] ~~comportamiento con batching~~ — mismo archivo + ingesta en `test_ingestion_worker.py`.
 
 ---
 

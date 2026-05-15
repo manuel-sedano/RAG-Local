@@ -90,6 +90,32 @@ pytest tests/test_chunking.py -v --tb=short
 
 Variables opcionales (`.env` / export): `CHUNK_SIZE_TOKENS`, `CHUNK_OVERLAP_TOKENS`, `MAX_CHUNK_SIZE_TOKENS`, `CHUNK_MIN_MERGE_TOKENS`. Tras ingesta exitosa, revisa en Swagger o DB que `documents.chunk_count` y filas en `chunks` coincidan; en métricas del run: `chunk_count` y `chunking_config_hash`.
 
+### Tests de embeddings (`test_embeddings.py`)
+
+En `ENVIRONMENT=test` el backend de embeddings es **fake** (determinista, sin descargar modelos):
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest tests/test_embeddings.py -v --tb=short
+```
+
+**Modelo real (local / Docker worker):**
+
+```bash
+pip install -e ".[embeddings]"
+export EMBEDDING_BACKEND=sentence_transformers
+# Primera ejecución descarga BAAI/bge-m3 (~2GB) en cache HuggingFace
+```
+
+Tras ingesta: `chunks.qdrant_point_id` = UUID del chunk; `chunks.embedding_model` = `bge-m3`; métricas `embedding_status`, `embedding_count`, `embedding_dim`.
+
+**Tarea Celery dedicada (cola `embed`):** `app.tasks.embed.embed_document_chunks`
+
+```bash
+celery -A app.tasks.celery_app:celery_app worker -Q ingest,ocr,embed -l info
+```
+
 ### Tests de OCR (`test_ocr.py`)
 
 Usan **mocks** de Tesseract (no hace falta instalar el binario para pytest):

@@ -152,9 +152,38 @@ class Settings(BaseSettings):
         le=500,
         description="Chunks por debajo de este umbral se fusionan con el vecino.",
     )
-    chunk_embedding_model_placeholder: str = Field(
+    embedding_enabled: bool = Field(
+        default=True,
+        description="Si false, la etapa embed se omite (solo para depuración).",
+    )
+    embedding_backend: Literal["auto", "fake", "sentence_transformers"] = Field(
+        default="auto",
+        description="`auto`: fake en test, sentence_transformers en otros entornos.",
+    )
+    embedding_model_name: str = Field(
+        default="BAAI/bge-m3",
+        description="Nombre HuggingFace / SentenceTransformers.",
+    )
+    embedding_model_label: str = Field(
         default="bge-m3",
-        description="Valor en chunks.embedding_model hasta la feature de embeddings.",
+        description="Etiqueta corta persistida en chunks.embedding_model.",
+    )
+    embedding_batch_size: int = Field(default=32, ge=1, le=256)
+    embedding_batch_size_min: int = Field(
+        default=1,
+        ge=1,
+        description="Tamaño mínimo de batch tras backoff por OOM.",
+    )
+    embedding_normalize: bool = Field(
+        default=True,
+        description="Normalizar L2 los vectores (recomendado para cosine).",
+    )
+    embedding_timeout_seconds: float = Field(default=300.0, ge=5.0)
+    embedding_fake_dimension: int = Field(
+        default=64,
+        ge=8,
+        le=1024,
+        description="Dimensión del vector fake (solo backend fake / tests).",
     )
 
     @computed_field  # type: ignore[prop-decorator]
@@ -229,7 +258,21 @@ class Settings(BaseSettings):
             msg = "MAX_CHUNK_SIZE_TOKENS debe ser >= CHUNK_SIZE_TOKENS."
             raise ValueError(msg)
 
+        if self.embedding_batch_size_min > self.embedding_batch_size:
+            msg = "EMBEDDING_BATCH_SIZE_MIN no puede ser mayor que EMBEDDING_BATCH_SIZE."
+            raise ValueError(msg)
+
+        if self.embedding_backend == "auto":
+            self.embedding_backend = (
+                "fake" if self.environment == "test" else "sentence_transformers"
+            )
+
         return self
+
+    def resolved_embedding_backend(self) -> Literal["fake", "sentence_transformers"]:
+        if self.embedding_backend == "fake":
+            return "fake"
+        return "sentence_transformers"
 
 
 def _looks_like_sqlalchemy_postgres(url: str) -> bool:

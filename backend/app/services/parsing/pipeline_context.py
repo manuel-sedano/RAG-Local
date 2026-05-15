@@ -15,3 +15,4 @@ class IngestPipelineContext:
     normalized_text: str = ""
     artifact_paths: dict[str, Any] = field(default_factory=dict)
     chunks: list[TextChunk] = field(default_factory=list)
+    point_vectors: list[tuple[str, list[float]]] = field(default_factory=list)

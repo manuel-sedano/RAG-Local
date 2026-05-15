@@ -250,7 +250,7 @@ def persist_document_chunks(
     """Reemplaza chunks del documento y actualiza chunk_count."""
     session.execute(delete(Chunk).where(Chunk.document_id == document.id))
     config_hash = chunking_config_hash(settings)
-    embedding_model = settings.chunk_embedding_model_placeholder
+    embedding_model = settings.embedding_model_label
 
     for chunk in chunks:
         meta = dict(chunk.metadata)
