@@ -317,37 +317,37 @@ Reglas:
 
 ### Feature branch: `feat/chunking-engine`
 
-- [ ] Implementar chunking:
-  - [ ] ventana deslizante con overlap (baseline)
-  - [ ] unir chunks muy pequeños
-  - [ ] preservar metadatos (página/sección)
-- [ ] Config:
-  - [ ] `CHUNK_SIZE_TOKENS`
-  - [ ] `CHUNK_OVERLAP_TOKENS`
-  - [ ] `MAX_CHUNK_SIZE_TOKENS`
-  - [ ] hash de configuración para trazabilidad
-- [ ] Tests:
-  - [ ] chunking estable con acentos
-  - [ ] chunking en docs largos
+- [x] ~~Implementar chunking:~~
+  - [x] ~~ventana deslizante con overlap (baseline)~~ — `app/services/chunking/engine.py` (`tokenizer` + ventana por tokens).
+  - [x] ~~unir chunks muy pequeños~~ — fusión iterativa bajo `CHUNK_MIN_MERGE_TOKENS` (default 50).
+  - [x] ~~preservar metadatos (página/sección)~~ — `page_start`/`page_end`/`section` desde `ParsedDocument.pages`.
+- [x] ~~Config:~~
+  - [x] ~~`CHUNK_SIZE_TOKENS`~~ — `app/core/config.py`.
+  - [x] ~~`CHUNK_OVERLAP_TOKENS`~~
+  - [x] ~~`MAX_CHUNK_SIZE_TOKENS`~~
+  - [x] ~~hash de configuración para trazabilidad~~ — `chunking_config_hash` en metadata de cada chunk y métricas de ingesta.
+- [x] ~~Tests:~~
+  - [x] ~~chunking estable con acentos~~ — `tests/test_chunking.py`.
+  - [x] ~~chunking en docs largos~~ — mismo archivo + aserciones en `test_ingestion_worker.py`.
 
 ## Feature: embeddings
 
 ### Feature branch: `feat/embeddings-bge-m3`
 
-- [ ] Integrar Sentence Transformers:
-  - [ ] cargar modelo `bge-m3`
-  - [ ] batching
-  - [ ] normalización
-- [ ] Robustez:
-  - [ ] timeouts
-  - [ ] manejo de OOM (reducir batch)
-  - [ ] colas de embeddings separadas
-- [ ] Trazabilidad:
-  - [ ] persistir `embedding_model` en `chunks`
-  - [ ] guardar `qdrant_point_id` en DB
-- [ ] Tests:
-  - [ ] embedding determinista para texto fijo (aprox)
-  - [ ] comportamiento con batching
+- [x] ~~Integrar Sentence Transformers:~~
+  - [x] ~~cargar modelo `bge-m3`~~ — `app/services/embeddings/sentence_transformer.py` + extra `pip install -e '.[embeddings]'`.
+  - [x] ~~batching~~ — `embed_texts` / `embed_document_chunks` con `EMBEDDING_BATCH_SIZE`.
+  - [x] ~~normalización~~ — `EMBEDDING_NORMALIZE` (L2 en ST y fake).
+- [x] ~~Robustez:~~
+  - [x] ~~timeouts~~ — `EMBEDDING_TIMEOUT_SECONDS` por batch.
+  - [x] ~~manejo de OOM (reducir batch)~~ — backoff hasta `EMBEDDING_BATCH_SIZE_MIN`.
+  - [x] ~~colas de embeddings separadas~~ — `app.tasks.embed.embed_document_chunks` → cola `embed`.
+- [x] ~~Trazabilidad:~~
+  - [x] ~~persistir `embedding_model` en `chunks`~~ — `embedding_model_label` (`bge-m3`).
+  - [x] ~~guardar `qdrant_point_id` en DB~~ — UUID del chunk (`stable_qdrant_point_id`).
+- [x] ~~Tests:~~
+  - [x] ~~embedding determinista para texto fijo (aprox)~~ — `tests/test_embeddings.py` (backend fake en `ENVIRONMENT=test`).
+  - [x] ~~comportamiento con batching~~ — mismo archivo + ingesta en `test_ingestion_worker.py`.
 
 ---
 

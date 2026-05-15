@@ -141,14 +141,24 @@ RAG_HYBRID_ENABLED=true
 ## Embeddings (Sentence Transformers)
 
 ```bash
-# Modelo embeddings
+# Habilitar etapa embed en ingesta
+EMBEDDING_ENABLED=true
+
+# auto | fake | sentence_transformers (auto: fake en test, ST en local/prod)
+EMBEDDING_BACKEND=auto
+
+# Modelo embeddings (requiere pip install -e '.[embeddings]' en backend)
 EMBEDDING_MODEL_NAME=BAAI/bge-m3
 
-# Batch size; ajustar según RAM
+# Batch size; ajustar según RAM (OOM → reduce automático hasta EMBEDDING_BATCH_SIZE_MIN)
 EMBEDDING_BATCH_SIZE=32
+EMBEDDING_BATCH_SIZE_MIN=1
 
 # Normalizar embeddings (recomendado para cosine)
 EMBEDDING_NORMALIZE=true
+
+# Timeout por batch de encode (segundos)
+EMBEDDING_TIMEOUT_SECONDS=300
 ```
 
 ---
@@ -186,6 +196,7 @@ TESSERACT_LANGS=spa
 CHUNK_SIZE_TOKENS=500
 CHUNK_OVERLAP_TOKENS=100
 MAX_CHUNK_SIZE_TOKENS=800
+CHUNK_MIN_MERGE_TOKENS=50
 ```
 
 ---

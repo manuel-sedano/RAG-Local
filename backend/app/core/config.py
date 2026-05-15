@@ -128,6 +128,64 @@ class Settings(BaseSettings):
         description="Hilos paralelos para OCR por página.",
     )
 
+    chunk_size_tokens: int = Field(
+        default=500,
+        ge=50,
+        le=4000,
+        description="Tamaño objetivo de cada chunk (tokens aproximados).",
+    )
+    chunk_overlap_tokens: int = Field(
+        default=100,
+        ge=0,
+        le=500,
+        description="Solapamiento entre chunks consecutivos (ventana deslizante).",
+    )
+    max_chunk_size_tokens: int = Field(
+        default=800,
+        ge=100,
+        le=8000,
+        description="Tope duro por chunk; se parte si se supera.",
+    )
+    chunk_min_merge_tokens: int = Field(
+        default=50,
+        ge=1,
+        le=500,
+        description="Chunks por debajo de este umbral se fusionan con el vecino.",
+    )
+    embedding_enabled: bool = Field(
+        default=True,
+        description="Si false, la etapa embed se omite (solo para depuración).",
+    )
+    embedding_backend: Literal["auto", "fake", "sentence_transformers"] = Field(
+        default="auto",
+        description="`auto`: fake en test, sentence_transformers en otros entornos.",
+    )
+    embedding_model_name: str = Field(
+        default="BAAI/bge-m3",
+        description="Nombre HuggingFace / SentenceTransformers.",
+    )
+    embedding_model_label: str = Field(
+        default="bge-m3",
+        description="Etiqueta corta persistida en chunks.embedding_model.",
+    )
+    embedding_batch_size: int = Field(default=32, ge=1, le=256)
+    embedding_batch_size_min: int = Field(
+        default=1,
+        ge=1,
+        description="Tamaño mínimo de batch tras backoff por OOM.",
+    )
+    embedding_normalize: bool = Field(
+        default=True,
+        description="Normalizar L2 los vectores (recomendado para cosine).",
+    )
+    embedding_timeout_seconds: float = Field(default=300.0, ge=5.0)
+    embedding_fake_dimension: int = Field(
+        default=64,
+        ge=8,
+        le=1024,
+        description="Dimensión del vector fake (solo backend fake / tests).",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -193,7 +251,28 @@ class Settings(BaseSettings):
         if self.environment == "test":
             self.celery_task_always_eager = True
 
+        if self.chunk_overlap_tokens >= self.chunk_size_tokens:
+            msg = "CHUNK_OVERLAP_TOKENS debe ser menor que CHUNK_SIZE_TOKENS."
+            raise ValueError(msg)
+        if self.max_chunk_size_tokens < self.chunk_size_tokens:
+            msg = "MAX_CHUNK_SIZE_TOKENS debe ser >= CHUNK_SIZE_TOKENS."
+            raise ValueError(msg)
+
+        if self.embedding_batch_size_min > self.embedding_batch_size:
+            msg = "EMBEDDING_BATCH_SIZE_MIN no puede ser mayor que EMBEDDING_BATCH_SIZE."
+            raise ValueError(msg)
+
+        if self.embedding_backend == "auto":
+            self.embedding_backend = (
+                "fake" if self.environment == "test" else "sentence_transformers"
+            )
+
         return self
+
+    def resolved_embedding_backend(self) -> Literal["fake", "sentence_transformers"]:
+        if self.embedding_backend == "fake":
+            return "fake"
+        return "sentence_transformers"
 
 
 def _looks_like_sqlalchemy_postgres(url: str) -> bool:

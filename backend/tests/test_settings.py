@@ -38,3 +38,12 @@ def test_database_url_must_be_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_settings_cache()
     with pytest.raises(ValueError):
         Settings()
+
+
+def test_chunk_overlap_must_be_less_than_chunk_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setenv("CHUNK_SIZE_TOKENS", "100")
+    monkeypatch.setenv("CHUNK_OVERLAP_TOKENS", "100")
+    clear_settings_cache()
+    with pytest.raises(ValueError, match="CHUNK_OVERLAP"):
+        Settings()

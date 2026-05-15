@@ -21,6 +21,8 @@ from app.core.config import get_settings
 from app.db.session import get_engine
 from app.models.document import Document, DocumentIngestionRun
 from app.services.document_service import absolute_storage_path, resolve_upload_root
+from app.services.chunking import chunk_normalized_text, chunking_config_hash, persist_document_chunks
+from app.services.embeddings import EmbeddingError, embed_document_chunks
 from app.services.parsing.artifacts import save_text_artifacts
 from app.services.parsing.errors import ParserError, RecoverableParserError
 from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
@@ -200,15 +202,36 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
             metrics["artifacts"] = ctx.artifact_paths
 
     def chunk() -> None:
-        # MVP: no generamos chunks reales aún, pero dejamos el contador
-        # preparado para no romper código que lo consulte.
-        if document.chunk_count is None:
-            document.chunk_count = 0
+        if not ctx.normalized_text.strip():
+            raise IngestionError("chunk_empty_text")
+        ctx.chunks = chunk_normalized_text(
+            ctx.normalized_text,
+            settings,
+            parsed=ctx.parsed,
+        )
+        if not ctx.chunks:
+            raise IngestionError("chunk_no_segments")
+        count = persist_document_chunks(session, document, ctx.chunks, settings)
+        metrics["chunk_count"] = count
+        metrics["chunking_config_hash"] = chunking_config_hash(settings)
 
     def embed() -> None:
-        time.sleep(0)
+        if not settings.embedding_enabled:
+            metrics["embedding_status"] = "skipped"
+            return
+        try:
+            embed_metrics, ctx.point_vectors = embed_document_chunks(
+                session,
+                document,
+                settings,
+            )
+            metrics.update(embed_metrics)
+        except EmbeddingError as e:
+            raise IngestionError(e.code) from e
 
     def qdrant_upsert() -> None:
+        if ctx.point_vectors:
+            metrics["qdrant_vectors_pending"] = len(ctx.point_vectors)
         time.sleep(0)
 
     _stage("antivirus", antivirus)

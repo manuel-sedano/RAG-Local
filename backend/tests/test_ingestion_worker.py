@@ -67,6 +67,7 @@ def test_celery_ingest_queues_and_routes(monkeypatch: pytest.MonkeyPatch) -> Non
     queue_names = {q.name for q in app.conf.task_queues}
     assert queue_names == {"ingest", "ocr", "embed"}
     assert app.conf.task_routes["app.tasks.ingest.*"]["queue"] == "ingest"
+    assert app.conf.task_routes["app.tasks.embed.*"]["queue"] == "embed"
     assert app.conf.task_always_eager is True
 
 
@@ -174,6 +175,16 @@ def test_ingest_success_state_transition(ingest_db: tuple) -> None:
     assert run.metrics["document_id"] == str(doc_id)
     assert run.metrics.get("parse_parser") == "pymupdf"
     assert doc.page_count is not None and doc.page_count >= 1
+    assert run.metrics.get("chunk_count", 0) >= 1
+    assert "chunking_config_hash" in run.metrics
+    assert len(doc.chunks) == doc.chunk_count
+    assert doc.chunks[0].embedding_model == "bge-m3"
+    assert doc.chunks[0].qdrant_point_id == str(doc.chunks[0].id)
+    assert doc.chunks[0].chunk_metadata is not None
+    assert "chunking_config_hash" in doc.chunks[0].chunk_metadata
+    assert doc.chunks[0].chunk_metadata.get("embedding_dim")
+    assert run.metrics.get("embedding_status") == "done"
+    assert run.metrics.get("embedding_count", 0) >= 1
 
 
 def test_ingest_idempotent_when_ready_with_chunks(ingest_db: tuple) -> None:

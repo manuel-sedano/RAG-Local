@@ -106,6 +106,9 @@ logs/
 
 # ML / model weights at repo root (no confundir con backend/app/models ORM)
 /models/
+# HuggingFace / SentenceTransformers (bge-m3, etc.)
+**/.cache/huggingface/
+**/.cache/torch/
 *.gguf
 *.bin
 *.onnx

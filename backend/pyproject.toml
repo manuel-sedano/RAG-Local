@@ -31,6 +31,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+embeddings = [
+  "sentence-transformers>=3.0",
+]
 dev = [
   "black>=24.10",
   "isort>=5.13",
