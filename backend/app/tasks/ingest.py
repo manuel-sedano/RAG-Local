@@ -232,13 +232,16 @@ def ingest_document(self: Task, document_id: str) -> None:
             )
             if run.attempt < MAX_INGEST_ATTEMPTS:
                 logger.warning(
-                    "Error de ingesta controlado para documento %s (intento %s/%s). Reintento en %ss.",
+                    (
+                        "Error de ingesta controlado para documento %s "
+                        "(intento %s/%s). Reintento en %ss."
+                    ),
                     document_id,
                     run.attempt,
                     MAX_INGEST_ATTEMPTS,
                     backoff,
                 )
-                raise self.retry(exc=e, countdown=backoff)
+                raise self.retry(exc=e, countdown=backoff) from e
             logger.error(
                 "Documento %s falló la ingesta tras %s intentos.",
                 document_id,
@@ -264,7 +267,7 @@ def ingest_document(self: Task, document_id: str) -> None:
                     MAX_INGEST_ATTEMPTS,
                     backoff,
                 )
-                raise self.retry(exc=e, countdown=backoff)
+                raise self.retry(exc=e, countdown=backoff) from e
             logger.exception(
                 "Documento %s falló la ingesta tras %s intentos por error inesperado.",
                 document_id,

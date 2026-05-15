@@ -11,9 +11,9 @@ import uuid
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from alembic import command
 from fastapi.testclient import TestClient
-import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -125,7 +125,6 @@ def ingest_db(
         db.commit()
         kb_id = kb.id
         doc_id = doc.id
-        user_id = user.id
     engine.dispose()
     yield SessionLocal, email, pwd, ingest_postgres_url, kb_id, doc_id
     clear_settings_cache()
