@@ -82,6 +82,25 @@ class Settings(BaseSettings):
     celery_result_backend: str = Field(default="", repr=False)
     celery_task_always_eager: bool = Field(default=False)
 
+    parse_timeout_seconds: float = Field(
+        default=120.0,
+        ge=1.0,
+        description="Tiempo máximo por documento en la etapa parse (segundos).",
+    )
+    ocr_min_chars_per_page: int = Field(
+        default=40,
+        ge=0,
+        description="Si el PDF tiene menos caracteres promedio por página, se marca needs_ocr.",
+    )
+    parser_save_artifacts: bool = Field(
+        default=True,
+        description="Guardar extracted/normalized en disco bajo uploads/artifacts.",
+    )
+    unstructured_enabled: bool = Field(
+        default=False,
+        description="Usar Unstructured como fallback si está instalado (pip extra).",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:

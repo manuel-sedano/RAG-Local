@@ -60,6 +60,12 @@ MAX_UPLOAD_MB=50
 
 # Tipos permitidos (lista separada por coma)
 ALLOWED_MIME_TYPES=application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain
+
+# Parsing de documentos (ingesta)
+PARSE_TIMEOUT_SECONDS=120
+OCR_MIN_CHARS_PER_PAGE=40
+PARSER_SAVE_ARTIFACTS=true
+UNSTRUCTURED_ENABLED=false
 ```
 
 ---
