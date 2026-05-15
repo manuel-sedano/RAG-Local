@@ -23,6 +23,7 @@ from app.models.document import Document, DocumentIngestionRun
 from app.services.document_service import absolute_storage_path, resolve_upload_root
 from app.services.parsing.artifacts import save_text_artifacts
 from app.services.parsing.errors import ParserError, RecoverableParserError
+from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
 from app.services.parsing.orchestrator import parse_document_file
 from app.services.parsing.pipeline_context import IngestPipelineContext
 from app.tasks.celery_app import celery_app
@@ -157,11 +158,31 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
             metrics["parse_encoding"] = parsed.encoding
 
     def ocr() -> None:
-        if ctx.parsed and ctx.parsed.needs_ocr:
-            metrics["ocr_status"] = "pending_tesseract"
-            # OCR real en feat/ocr-tesseract
-        else:
+        if ctx.parsed is None:
             metrics["ocr_status"] = "skipped"
+            return
+        if not settings.ocr_enabled:
+            metrics["ocr_status"] = "disabled"
+            return
+        if ctx.parsed.mime_type != "application/pdf":
+            metrics["ocr_status"] = "skipped"
+            return
+        if not document_needs_ocr(ctx.parsed, settings.ocr_min_chars_per_page):
+            metrics["ocr_status"] = "skipped"
+            return
+        file_path = absolute_storage_path(settings, document.storage_path)
+        try:
+            ctx.parsed = enrich_parsed_with_ocr(
+                ctx.parsed,
+                file_path,
+                settings,
+                upload_root=resolve_upload_root(settings),
+            )
+        except ParserError as e:
+            raise _map_parser_error(e) from e
+        metrics["ocr_status"] = "done"
+        metrics["ocr_pages_processed"] = ctx.parsed.metadata.get("ocr_pages_processed", 0)
+        metrics["parse_char_count"] = len(ctx.parsed.full_text)
 
     def normalize() -> None:
         if ctx.parsed is None:

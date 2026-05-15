@@ -77,3 +77,25 @@ pytest tests/test_doc_parsers.py -v --tb=short
 ```
 
 Los tests de ingesta (`test_ingestion_worker.py`) sí necesitan `TEST_DATABASE_URL` y un PDF mínimo en `UPLOAD_STORAGE_DIR` (el fixture lo crea automáticamente).
+
+### Tests de OCR (`test_ocr.py`)
+
+Usan **mocks** de Tesseract (no hace falta instalar el binario para pytest):
+
+```bash
+pytest tests/test_ocr.py -v --tb=short
+```
+
+**Prueba manual con Tesseract** (WSL/Ubuntu):
+
+```bash
+sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
+cd backend && source .venv/bin/activate && pip install -e ".[dev]"
+# Sube un PDF escaneado por la UI o API; en métricas de ingesta: ocr_status=done
+```
+
+Worker Celery con cola OCR dedicada (cuando uses worker real, no solo eager):
+
+```bash
+celery -A app.tasks.celery_app:celery_app worker -Q ingest,ocr,embed -l info
+```

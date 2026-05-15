@@ -12,6 +12,7 @@ class PageText:
     page_number: int
     text: str
     section: str | None = None
+    ocr_applied: bool = False
 
 
 @dataclass(slots=True)

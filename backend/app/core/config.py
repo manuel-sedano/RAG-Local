@@ -101,6 +101,33 @@ class Settings(BaseSettings):
         description="Usar Unstructured como fallback si está instalado (pip extra).",
     )
 
+    ocr_enabled: bool = Field(default=True, description="Habilitar OCR Tesseract en ingesta PDF.")
+    ocr_max_pages: int = Field(
+        default=50,
+        ge=1,
+        le=500,
+        description="Máximo de páginas a procesar con OCR por documento.",
+    )
+    ocr_tesseract_lang: str = Field(
+        default="spa",
+        description="Idioma Tesseract (paquete del sistema, p. ej. tesseract-ocr-spa).",
+    )
+    ocr_tesseract_cmd: str = Field(
+        default="",
+        description="Ruta al binario tesseract si no está en PATH.",
+    )
+    ocr_cache_enabled: bool = Field(
+        default=True,
+        description="Cachear texto OCR por página en uploads/.ocr_cache.",
+    )
+    ocr_dpi: int = Field(default=200, ge=72, le=400, description="DPI al rasterizar páginas PDF.")
+    ocr_max_workers: int = Field(
+        default=2,
+        ge=1,
+        le=8,
+        description="Hilos paralelos para OCR por página.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
