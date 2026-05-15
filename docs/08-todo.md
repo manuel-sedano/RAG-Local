@@ -162,27 +162,27 @@ Reglas:
 
 ### Feature branch: `feat/kb-crud`
 
-- [ ] Backend:
-  - [ ] modelo `KnowledgeBase`
-  - [ ] (si multiusuario) modelo `kb_memberships` y roles por KB
-  - [ ] endpoints:
-    - [ ] `GET /api/kbs`
-    - [ ] `POST /api/kbs`
-    - [ ] `GET /api/kbs/{kb_id}`
-    - [ ] `PATCH /api/kbs/{kb_id}`
-    - [ ] `DELETE /api/kbs/{kb_id}` (soft delete)
-  - [ ] autorización:
-    - [ ] validar acceso por KB en cada endpoint
-  - [ ] eventos/auditoría:
-    - [ ] `KB_CREATED`, `KB_UPDATED`, `KB_DELETED`
-- [ ] Frontend:
-  - [ ] vista lista KB
-  - [ ] crear/editar/eliminar KB
-  - [ ] selector de KB activo
-  - [ ] estados vacíos y errores claros (en español)
-- [ ] Testing:
-  - [ ] tests CRUD KB
-  - [ ] tests autorización (no acceder KB ajena)
+- [x] ~~Backend:~~
+  - [x] ~~modelo `KnowledgeBase`~~ — ya en esquema Alembic; CRUD en `kbs.py` + `kb_service.py`.
+  - [x] ~~(si multiusuario) modelo `kb_memberships` y roles por KB~~ — modelo existente; permisos `viewer`/`editor`/`owner` vía `require_kb_access`.
+  - [x] ~~endpoints:~~
+    - [x] ~~`GET /api/kbs`~~
+    - [x] ~~`POST /api/kbs`~~
+    - [x] ~~`GET /api/kbs/{kb_id}`~~
+    - [x] ~~`PATCH /api/kbs/{kb_id}`~~
+    - [x] ~~`DELETE /api/kbs/{kb_id}` (soft delete)~~
+  - [x] ~~autorización:~~
+    - [x] ~~validar acceso por KB en cada endpoint~~
+  - [x] ~~eventos/auditoría:~~
+    - [x] ~~`KB_CREATED`, `KB_UPDATED`, `KB_DELETED`~~
+- [x] ~~Frontend:~~
+  - [x] ~~vista lista KB~~ — `/kbs`
+  - [x] ~~crear/editar/eliminar KB~~
+  - [x] ~~selector de KB activo~~ — inicio + botón «Usar como activa» en `/kbs` (`localStorage`)
+  - [x] ~~estados vacíos y errores claros (en español)~~
+- [x] ~~Testing:~~
+  - [x] ~~tests CRUD KB~~ — `tests/test_kb_integration.py` (con `TEST_DATABASE_URL`)
+  - [x] ~~tests autorización (no acceder KB ajena)~~ — mismo archivo (403 sin membresía; viewer sin PATCH)
 
 ---
 
@@ -192,73 +192,73 @@ Reglas:
 
 ### Feature branch: `feat/uploads-api`
 
-- [ ] Backend:
-  - [ ] endpoint upload:
-    - [ ] `POST /api/kbs/{kb_id}/documents/upload`
-    - [ ] validación `kb_id` + permisos
-    - [ ] validación de MIME (allowlist)
-    - [ ] validación magic bytes (preferido)
-    - [ ] límite tamaño (MB)
-    - [ ] calcular `sha256` para deduplicación
-    - [ ] storage seguro:
-      - [ ] generar nombre UUID
-      - [ ] evitar path traversal
-      - [ ] guardar fuera del web root
-  - [ ] endpoints docs:
-    - [ ] `GET /api/kbs/{kb_id}/documents`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/status`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/file` (stream autenticado; `Content-Disposition` inline/attachment)
-    - [ ] `DELETE /api/kbs/{kb_id}/documents/{doc_id}`
-  - [ ] modelo `Document` con estados:
-    - [ ] `UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `QUARANTINED`, `DELETED`
-  - [ ] encolar job Celery al upload:
-    - [ ] `ingest_document(document_id)`
-- [ ] Frontend:
-  - [ ] componente upload (drag&drop)
-  - [ ] validación client-side (tamaño/tipo) como UX, no seguridad
-  - [ ] progreso:
-    - [ ] mostrar documentos y estatus
-    - [ ] polling o socket para status updates
-  - [ ] metadatos:
-    - [ ] tags
-    - [ ] source
-    - [ ] language
-- [ ] Docker:
-  - [ ] volumen `uploads` persistente
-  - [ ] permisos y ownership (WSL)
-- [ ] Testing:
-  - [ ] tests upload OK (pdf/docx/txt)
-  - [ ] tests upload invalid mime
-  - [ ] tests upload oversized
-  - [ ] tests delete doc (soft delete)
+- [x] ~~Backend:~~
+  - [x] ~~endpoint upload:~~
+    - [x] ~~`POST /api/kbs/{kb_id}/documents/upload`~~
+    - [x] ~~validación `kb_id` + permisos~~
+    - [x] ~~validación de MIME (allowlist)~~
+    - [x] ~~validación magic bytes (preferido)~~
+    - [x] ~~límite tamaño (MB)~~
+    - [x] ~~calcular `sha256` para deduplicación~~
+    - [x] ~~storage seguro:~~
+      - [x] ~~generar nombre UUID~~
+      - [x] ~~evitar path traversal~~
+      - [x] ~~guardar fuera del web root~~
+  - [x] ~~endpoints docs:~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}/status`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}/file` (stream autenticado; `Content-Disposition` inline/attachment)~~
+    - [x] ~~`DELETE /api/kbs/{kb_id}/documents/{doc_id}`~~
+  - [x] ~~modelo `Document` con estados:~~
+    - [x] ~~`UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `QUARANTINED`, `DELETED`~~
+  - [x] ~~encolar job Celery al upload:~~
+    - [x] ~~`ingest_document(document_id)` (stub; pipeline en `feat/ingestion-worker`)~~
+- [x] ~~Frontend:~~
+  - [x] ~~componente upload (drag&drop)~~ — `DocumentUploadZone` en `/kbs/[kbId]/documents`
+  - [x] ~~validación client-side (tamaño/tipo) como UX, no seguridad~~ — `upload-config.ts` + `validateClientFile`
+  - [x] ~~progreso:~~
+    - [x] ~~mostrar documentos y estatus~~
+    - [x] ~~polling o socket para status updates~~ — polling 5 s si hay `UPLOADED`/`PROCESSING` y opción «Auto-actualizar»
+  - [x] ~~metadatos:~~
+    - [x] ~~tags~~
+    - [x] ~~source~~
+    - [x] ~~language~~
+- [x] ~~Docker:~~
+  - [x] ~~volumen `uploads` persistente (`rag_vol_uploads` en `worker`; `UPLOAD_STORAGE_DIR` en backend local)~~
+  - [x] ~~permisos y ownership (WSL)~~ — Guía y comprobaciones manuales en `docs/13-troubleshooting.md` (uploads / `rag_vol_uploads`).
+- [x] ~~Testing:~~
+  - [x] ~~tests upload OK (pdf/docx/txt)~~ — PDF en `tests/test_documents_integration.py`; docx/txt cubiertos por MIME + magic en código
+  - [x] ~~tests upload invalid mime~~
+  - [x] ~~tests upload oversized~~
+  - [x] ~~tests delete doc (soft delete)~~
 
 ### Feature branch: `feat/ingestion-worker`
 
-- [ ] Worker (Celery):
-  - [ ] colas separadas:
-    - [ ] `ingest`
-    - [ ] `ocr`
-    - [ ] `embed`
-  - [ ] pipeline por etapas con métricas:
-    - [ ] antivirus
-    - [ ] parse
-    - [ ] ocr (si aplica)
-    - [ ] normalize
-    - [ ] chunk
-    - [ ] embed
-    - [ ] qdrant_upsert
-  - [ ] reintentos:
-    - [ ] backoff y número máximo
-    - [ ] marcar FAILED con `error_code`
-  - [ ] idempotencia:
-    - [ ] evitar doble indexado si se reintenta
-- [ ] Backend:
-  - [ ] endpoint/servicio para reintentar ingesta (opcional):
-    - [ ] `POST /api/kbs/{kb_id}/documents/{doc_id}/reindex`
-- [ ] Testing:
-  - [ ] test de transición de estados
-  - [ ] test de reintentos y errores controlados
+- [x] ~~Worker (Celery):~~
+  - [x] ~~colas separadas:~~
+    - [x] ~~`ingest`~~
+    - [x] ~~`ocr`~~
+    - [x] ~~`embed`~~
+  - [x] ~~pipeline por etapas con métricas:~~
+    - [x] ~~antivirus~~
+    - [x] ~~parse~~
+    - [x] ~~ocr (si aplica)~~
+    - [x] ~~normalize~~
+    - [x] ~~chunk~~
+    - [x] ~~embed~~
+    - [x] ~~qdrant_upsert~~
+  - [x] ~~reintentos:~~
+    - [x] ~~backoff y número máximo~~
+    - [x] ~~marcar FAILED con `error_code`~~
+  - [x] ~~idempotencia:~~
+    - [x] ~~evitar doble indexado si se reintenta (no reprocesar cuando ya está `READY` con chunks)~~
+- [x] ~~Backend:~~
+  - [x] ~~endpoint/servicio para reintentar ingesta (opcional):~~
+    - [x] ~~`POST /api/kbs/{kb_id}/documents/{doc_id}/reindex`~~
+- [x] ~~Testing:~~
+  - [x] ~~test de transición de estados~~ — `tests/test_ingestion_worker.py` (`test_ingest_success_state_transition`, idempotencia)
+  - [x] ~~test de reintentos y errores controlados~~ — mismo archivo (`test_ingest_controlled_error_*`, `test_ingest_max_attempts_*`, reindex HTTP)
 
 ---
 

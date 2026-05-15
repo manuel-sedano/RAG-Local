@@ -210,6 +210,25 @@ GRAFANA_ADMIN_PASSWORD=admin_local_change_me
 
 ---
 
+## Tests backend (pytest / `TEST_DATABASE_URL`)
+
+No va en el archivo `.env` de la app: se exporta **solo en la terminal** (o en `backend/.env.test` si lo cargas a mano).
+
+- **Variable:** `TEST_DATABASE_URL` — DSN PostgreSQL **dedicado a tests** (p. ej. base `rag_test`).
+- **Peligro:** varios tests hacen `DROP SCHEMA public CASCADE` en esa base; **no** uses la misma base que `rag` de desarrollo.
+- **Ejemplo** (Postgres del `docker-compose.yml` expuesto en `127.0.0.1:5432`, usuario `rag`, password `rag_local_dev`):
+
+  ```bash
+  export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+  cd backend && source .venv/bin/activate && pytest tests/ -q --tb=short
+  ```
+
+- **Redis opcional** (`tests/test_auth_redis.py`): `docker compose up -d redis`, luego `export TEST_REDIS_URL=redis://127.0.0.1:6379/15` y `cd backend && pytest tests/test_auth_redis.py -v` (el archivo vive bajo `backend/tests/`, no en la raíz del repo).
+
+Detalle: `backend/.env.test.example` y `backend/README.md` (sección *Tests de integración*).
+
+---
+
 ## Notas y recomendaciones
 
 - **Secrets**: genera `JWT_SECRET` y `PASSWORD_PEPPER` con un generador seguro.

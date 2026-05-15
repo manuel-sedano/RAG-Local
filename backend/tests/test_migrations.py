@@ -43,9 +43,7 @@ def postgres_migration_url() -> str:
     """Base dedicada recomendada (p. ej. `rag_test`); el test rehace `public`."""
     url = os.environ.get("TEST_DATABASE_URL", "").strip()
     if not url:
-        pytest.skip(
-            "Define TEST_DATABASE_URL (Postgres de test) para pruebas de migración."
-        )
+        pytest.skip("Define TEST_DATABASE_URL (Postgres de test) para pruebas de migración.")
     _ensure_database_exists(url)
     return url
 

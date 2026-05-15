@@ -251,6 +251,8 @@ Actualiza nombre/descripcion.
 
 Elimina KB (soft delete recomendado). Opcional: “revoke access” para multi-tenant.
 
+**Auditoría** (`security_events.kind`): `KB_CREATED`, `KB_UPDATED`, `KB_DELETED` con `details.kb_id` (UUID en string) y campos relevantes (`name`, etc.).
+
 ---
 
 ## Documentos
@@ -280,6 +282,8 @@ Sube un documento para ingesta asíncrona.
   "ingestion_job_id": "uuid"
 }
 ```
+
+`ingestion_job_id`: identificador del encargo asíncrono (p. ej. **task id de Celery**); cuando exista una tabla de jobs de ingesta, puede sustituirse por el UUID del registro.
 
 **Errores**
 

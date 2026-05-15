@@ -29,8 +29,7 @@ class Settings(BaseSettings):
 
     cors_allow_origins: str = Field(
         default=(
-            "http://localhost:3000,http://localhost,http://127.0.0.1:3000,"
-            "http://127.0.0.1"
+            "http://localhost:3000,http://localhost,http://127.0.0.1:3000," "http://127.0.0.1"
         ),
     )
 
@@ -66,6 +65,23 @@ class Settings(BaseSettings):
 
     health_http_timeout_seconds: float = Field(default=3.0)
 
+    upload_storage_dir: str = Field(
+        default="",
+        description="Directorio absoluto o vacío (<raíz repo>/uploads).",
+    )
+    max_upload_mb: int = Field(default=50, ge=1, le=512)
+    allowed_mime_types: str = Field(
+        default=(
+            "application/pdf,"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+            "text/plain"
+        ),
+    )
+
+    celery_broker_url: str = Field(default="", repr=False)
+    celery_result_backend: str = Field(default="", repr=False)
+    celery_task_always_eager: bool = Field(default=False)
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -85,6 +101,24 @@ class Settings(BaseSettings):
     @property
     def ollama_http_url(self) -> str:
         return f"http://{self.ollama_host}:{self.ollama_port}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def allowed_mime_type_list(self) -> list[str]:
+        return [m.strip() for m in self.allowed_mime_types.split(",") if m.strip()]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def resolved_celery_broker_url(self) -> str:
+        if self.celery_broker_url.strip():
+            return self.celery_broker_url.strip()
+        return self.redis_url
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def resolved_celery_result_backend(self) -> str | None:
+        s = self.celery_result_backend.strip()
+        return s if s else None
 
     @model_validator(mode="after")
     def validate_boot(self) -> Settings:
@@ -109,6 +143,9 @@ class Settings(BaseSettings):
         if not _looks_like_sqlalchemy_postgres(self.database_url):
             msg = "DATABASE_URL debe ser un DSN PostgreSQL (postgresql+psycopg o postgresql)."
             raise ValueError(msg)
+
+        if self.environment == "test":
+            self.celery_task_always_eager = True
 
         return self
 

@@ -50,9 +50,7 @@ class Chat(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    knowledge_base: Mapped[KnowledgeBase] = relationship(
-        "KnowledgeBase", back_populates="chats"
-    )
+    knowledge_base: Mapped[KnowledgeBase] = relationship("KnowledgeBase", back_populates="chats")
     created_by: Mapped[User] = relationship(
         "User", back_populates="chats_created", foreign_keys=[created_by_user_id]
     )

@@ -23,9 +23,8 @@ class DependencyResult:
 
 
 def _to_psycopg_conninfo(database_url: str) -> str:
-    return (
-        database_url.replace("postgresql+psycopg://", "postgresql://", 1)
-        .replace("postgresql+asyncpg://", "postgresql://", 1)
+    return database_url.replace("postgresql+psycopg://", "postgresql://", 1).replace(
+        "postgresql+asyncpg://", "postgresql://", 1
     )
 
 
@@ -37,8 +36,9 @@ async def check_postgres(settings: Settings) -> DependencyResult:
             await psycopg.AsyncConnection.connect(
                 conninfo,
                 connect_timeout=int(settings.health_http_timeout_seconds),
-            )
-        ) as conn, conn.cursor() as cur:
+            ) as conn,
+            conn.cursor() as cur,
+        ):
             await cur.execute("SELECT 1")
             await cur.fetchone()
         latency_ms = (time.perf_counter() - started) * 1000

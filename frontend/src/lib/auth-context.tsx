@@ -6,6 +6,9 @@ import { api } from "@/lib/api-client";
 import type { AuthUser } from "@/lib/auth-types";
 import { AUTH_USER_STORAGE_KEY, clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/auth-tokens";
 
+/** Debe coincidir con `ACTIVE_KB_STORAGE_KEY` en `kb-context.tsx`. */
+const ACTIVE_KB_STORAGE_KEY = "rag-local:active-kb-id";
+
 const USER_KEY = AUTH_USER_STORAGE_KEY;
 
 type AuthState = {
@@ -74,6 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       /* ignorar errores de red; limpiamos sesión local igual */
     }
     clearTokens();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(ACTIVE_KB_STORAGE_KEY);
+    }
     setUser(null);
   }, []);
 

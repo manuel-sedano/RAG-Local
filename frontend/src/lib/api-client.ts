@@ -47,8 +47,21 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.data instanceof FormData) {
+    const h = config.headers;
+    if (h && typeof (h as { delete?: (key: string) => void }).delete === "function") {
+      (h as { delete: (key: string) => void }).delete("Content-Type");
+    } else if (h && typeof h === "object") {
+      delete (h as Record<string, unknown>)["Content-Type"];
+    }
+  }
   return config;
 });
+
+/** POST multipart (FormData); el interceptor quita `Content-Type` para el boundary correcto. */
+export function postFormData<T = unknown>(url: string, formData: FormData) {
+  return api.post<T>(url, formData);
+}
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
