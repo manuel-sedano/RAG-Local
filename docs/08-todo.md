@@ -235,30 +235,30 @@ Reglas:
 
 ### Feature branch: `feat/ingestion-worker`
 
-- [ ] Worker (Celery):
-  - [ ] colas separadas:
-    - [ ] `ingest`
-    - [ ] `ocr`
-    - [ ] `embed`
-  - [ ] pipeline por etapas con métricas:
-    - [ ] antivirus
-    - [ ] parse
-    - [ ] ocr (si aplica)
-    - [ ] normalize
-    - [ ] chunk
-    - [ ] embed
-    - [ ] qdrant_upsert
-  - [ ] reintentos:
-    - [ ] backoff y número máximo
-    - [ ] marcar FAILED con `error_code`
-  - [ ] idempotencia:
-    - [ ] evitar doble indexado si se reintenta
-- [ ] Backend:
-  - [ ] endpoint/servicio para reintentar ingesta (opcional):
-    - [ ] `POST /api/kbs/{kb_id}/documents/{doc_id}/reindex`
-- [ ] Testing:
-  - [ ] test de transición de estados
-  - [ ] test de reintentos y errores controlados
+- [x] ~~Worker (Celery):~~
+  - [x] ~~colas separadas:~~
+    - [x] ~~`ingest`~~
+    - [x] ~~`ocr`~~
+    - [x] ~~`embed`~~
+  - [x] ~~pipeline por etapas con métricas:~~
+    - [x] ~~antivirus~~
+    - [x] ~~parse~~
+    - [x] ~~ocr (si aplica)~~
+    - [x] ~~normalize~~
+    - [x] ~~chunk~~
+    - [x] ~~embed~~
+    - [x] ~~qdrant_upsert~~
+  - [x] ~~reintentos:~~
+    - [x] ~~backoff y número máximo~~
+    - [x] ~~marcar FAILED con `error_code`~~
+  - [x] ~~idempotencia:~~
+    - [x] ~~evitar doble indexado si se reintenta (no reprocesar cuando ya está `READY` con chunks)~~
+- [x] ~~Backend:~~
+  - [x] ~~endpoint/servicio para reintentar ingesta (opcional):~~
+    - [x] ~~`POST /api/kbs/{kb_id}/documents/{doc_id}/reindex`~~
+- [x] ~~Testing:~~
+  - [x] ~~test de transición de estados~~ — `tests/test_ingestion_worker.py` (`test_ingest_success_state_transition`, idempotencia)
+  - [x] ~~test de reintentos y errores controlados~~ — mismo archivo (`test_ingest_controlled_error_*`, `test_ingest_max_attempts_*`, reindex HTTP)
 
 ---
 

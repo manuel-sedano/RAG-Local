@@ -1,4 +1,4 @@
-"""Documentos por KB: upload, listado, descarga y borrado lógico."""
+"""Documentos por KB: upload, listado, descarga, reindex y borrado lógico."""
 
 from __future__ import annotations
 
@@ -50,6 +50,12 @@ def _client_ip(request: Request) -> str | None:
 
 
 class DocumentUploadResponse(BaseModel):
+    document_id: uuid.UUID
+    status: str
+    ingestion_job_id: str
+
+
+class DocumentReindexResponse(BaseModel):
     document_id: uuid.UUID
     status: str
     ingestion_job_id: str
@@ -407,4 +413,35 @@ def download_document_file(
         path=str(path),
         media_type=doc.mime_type,
         headers={"Content-Disposition": cd},
+    )
+
+
+@router.post(
+    "/{doc_id}/reindex",
+    response_model=DocumentReindexResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Reintentar ingesta de un documento",
+)
+def reindex_document(
+    kb_id: Annotated[uuid.UUID, Depends(require_kb_access("editor"))],
+    doc_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+) -> DocumentReindexResponse:
+    """Encola una nueva corrida de ingesta (Celery) sin esperar al worker."""
+    doc = get_document_for_kb(db, kb_id=kb_id, doc_id=doc_id)
+    if doc is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "DOCUMENT_NOT_FOUND",
+                "message": "El documento no existe.",
+                "details": {},
+            },
+        )
+    async_result = ingest_document.delay(str(doc.id))
+    job_id = async_result.id if async_result else str(uuid.uuid4())
+    return DocumentReindexResponse(
+        document_id=doc.id,
+        status=doc.status,
+        ingestion_job_id=job_id,
     )
