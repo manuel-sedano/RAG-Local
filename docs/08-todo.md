@@ -317,18 +317,18 @@ Reglas:
 
 ### Feature branch: `feat/chunking-engine`
 
-- [ ] Implementar chunking:
-  - [ ] ventana deslizante con overlap (baseline)
-  - [ ] unir chunks muy pequeños
-  - [ ] preservar metadatos (página/sección)
-- [ ] Config:
-  - [ ] `CHUNK_SIZE_TOKENS`
-  - [ ] `CHUNK_OVERLAP_TOKENS`
-  - [ ] `MAX_CHUNK_SIZE_TOKENS`
-  - [ ] hash de configuración para trazabilidad
-- [ ] Tests:
-  - [ ] chunking estable con acentos
-  - [ ] chunking en docs largos
+- [x] ~~Implementar chunking:~~
+  - [x] ~~ventana deslizante con overlap (baseline)~~ — `app/services/chunking/engine.py` (`tokenizer` + ventana por tokens).
+  - [x] ~~unir chunks muy pequeños~~ — fusión iterativa bajo `CHUNK_MIN_MERGE_TOKENS` (default 50).
+  - [x] ~~preservar metadatos (página/sección)~~ — `page_start`/`page_end`/`section` desde `ParsedDocument.pages`.
+- [x] ~~Config:~~
+  - [x] ~~`CHUNK_SIZE_TOKENS`~~ — `app/core/config.py`.
+  - [x] ~~`CHUNK_OVERLAP_TOKENS`~~
+  - [x] ~~`MAX_CHUNK_SIZE_TOKENS`~~
+  - [x] ~~hash de configuración para trazabilidad~~ — `chunking_config_hash` en metadata de cada chunk y métricas de ingesta.
+- [x] ~~Tests:~~
+  - [x] ~~chunking estable con acentos~~ — `tests/test_chunking.py`.
+  - [x] ~~chunking en docs largos~~ — mismo archivo + aserciones en `test_ingestion_worker.py`.
 
 ## Feature: embeddings
 

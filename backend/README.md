@@ -78,6 +78,18 @@ pytest tests/test_doc_parsers.py -v --tb=short
 
 Los tests de ingesta (`test_ingestion_worker.py`) sí necesitan `TEST_DATABASE_URL` y un PDF mínimo en `UPLOAD_STORAGE_DIR` (el fixture lo crea automáticamente).
 
+### Tests de chunking (`test_chunking.py`)
+
+No requieren Postgres. Validan ventana deslizante, fusión de fragmentos pequeños, metadatos de página y hash de configuración:
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest tests/test_chunking.py -v --tb=short
+```
+
+Variables opcionales (`.env` / export): `CHUNK_SIZE_TOKENS`, `CHUNK_OVERLAP_TOKENS`, `MAX_CHUNK_SIZE_TOKENS`, `CHUNK_MIN_MERGE_TOKENS`. Tras ingesta exitosa, revisa en Swagger o DB que `documents.chunk_count` y filas en `chunks` coincidan; en métricas del run: `chunk_count` y `chunking_config_hash`.
+
 ### Tests de OCR (`test_ocr.py`)
 
 Usan **mocks** de Tesseract (no hace falta instalar el binario para pytest):

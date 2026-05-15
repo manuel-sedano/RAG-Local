@@ -174,6 +174,12 @@ def test_ingest_success_state_transition(ingest_db: tuple) -> None:
     assert run.metrics["document_id"] == str(doc_id)
     assert run.metrics.get("parse_parser") == "pymupdf"
     assert doc.page_count is not None and doc.page_count >= 1
+    assert run.metrics.get("chunk_count", 0) >= 1
+    assert "chunking_config_hash" in run.metrics
+    assert len(doc.chunks) == doc.chunk_count
+    assert doc.chunks[0].embedding_model == "bge-m3"
+    assert doc.chunks[0].chunk_metadata is not None
+    assert "chunking_config_hash" in doc.chunks[0].chunk_metadata
 
 
 def test_ingest_idempotent_when_ready_with_chunks(ingest_db: tuple) -> None:

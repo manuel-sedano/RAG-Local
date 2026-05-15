@@ -128,6 +128,35 @@ class Settings(BaseSettings):
         description="Hilos paralelos para OCR por página.",
     )
 
+    chunk_size_tokens: int = Field(
+        default=500,
+        ge=50,
+        le=4000,
+        description="Tamaño objetivo de cada chunk (tokens aproximados).",
+    )
+    chunk_overlap_tokens: int = Field(
+        default=100,
+        ge=0,
+        le=500,
+        description="Solapamiento entre chunks consecutivos (ventana deslizante).",
+    )
+    max_chunk_size_tokens: int = Field(
+        default=800,
+        ge=100,
+        le=8000,
+        description="Tope duro por chunk; se parte si se supera.",
+    )
+    chunk_min_merge_tokens: int = Field(
+        default=50,
+        ge=1,
+        le=500,
+        description="Chunks por debajo de este umbral se fusionan con el vecino.",
+    )
+    chunk_embedding_model_placeholder: str = Field(
+        default="bge-m3",
+        description="Valor en chunks.embedding_model hasta la feature de embeddings.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -192,6 +221,13 @@ class Settings(BaseSettings):
 
         if self.environment == "test":
             self.celery_task_always_eager = True
+
+        if self.chunk_overlap_tokens >= self.chunk_size_tokens:
+            msg = "CHUNK_OVERLAP_TOKENS debe ser menor que CHUNK_SIZE_TOKENS."
+            raise ValueError(msg)
+        if self.max_chunk_size_tokens < self.chunk_size_tokens:
+            msg = "MAX_CHUNK_SIZE_TOKENS debe ser >= CHUNK_SIZE_TOKENS."
+            raise ValueError(msg)
 
         return self
 
