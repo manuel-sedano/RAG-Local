@@ -268,29 +268,29 @@ Reglas:
 
 ### Feature branch: `feat/doc-parsers`
 
-- [ ] Implementar extractores:
-  - [ ] PDF extractor (PyMuPDF):
-    - [ ] texto por página
-    - [ ] conteo páginas
-    - [ ] detectar “poco texto” para disparar OCR
-  - [ ] DOCX extractor (python-docx):
-    - [ ] extraer títulos/párrafos
-  - [ ] TXT extractor:
-    - [ ] detectar encoding
-    - [ ] normalización básica
-- [ ] Integrar Unstructured (si aplica):
-  - [ ] particionado semántico
-  - [ ] limpieza adicional
-- [ ] Manejo de errores:
-  - [ ] errores recuperables vs fatales
-  - [ ] timeouts por parser
-- [ ] Persistencia (opcional):
-  - [ ] guardar `document_artifacts` (extracted/normalized)
-- [ ] Tests:
-  - [ ] PDFs con texto normal
-  - [ ] PDFs con caracteres especiales (acentos)
-  - [ ] DOCX con listas/headers
-  - [ ] TXT con latin1
+- [x] ~~Implementar extractores:~~
+  - [x] ~~PDF extractor (PyMuPDF):~~
+    - [x] ~~texto por página~~
+    - [x] ~~conteo páginas~~
+    - [x] ~~detectar “poco texto” para disparar OCR~~ — `needs_ocr` + métrica `parse_needs_ocr` (OCR real en `feat/ocr-tesseract`).
+  - [x] ~~DOCX extractor (python-docx):~~
+    - [x] ~~extraer títulos/párrafos~~
+  - [x] ~~TXT extractor:~~
+    - [x] ~~detectar encoding~~ — `charset-normalizer` + UTF-8 / Latin-1.
+    - [x] ~~normalización básica~~ — `app/services/parsing/normalize.py`.
+- [x] ~~Integrar Unstructured (si aplica):~~
+  - [x] ~~particionado semántico~~ — fallback opcional (`UNSTRUCTURED_ENABLED=true` + paquete instalado aparte).
+  - [x] ~~limpieza adicional~~ — vía partición Unstructured cuando el primario falla o devuelve poco texto.
+- [x] ~~Manejo de errores:~~
+  - [x] ~~errores recuperables vs fatales~~ — `RecoverableParserError` / `FatalParserError`.
+  - [x] ~~timeouts por parser~~ — `PARSE_TIMEOUT_SECONDS`.
+- [x] ~~Persistencia (opcional):~~
+  - [x] ~~guardar `document_artifacts` (extracted/normalized)~~ — en disco `uploads/{kb_id}/artifacts/{doc_id}/` (`PARSER_SAVE_ARTIFACTS`).
+- [x] ~~Tests:~~
+  - [x] ~~PDFs con texto normal~~
+  - [x] ~~PDFs con caracteres especiales (acentos)~~
+  - [x] ~~DOCX con listas/headers~~
+  - [x] ~~TXT con latin1~~
 
 ## Feature: OCR
 

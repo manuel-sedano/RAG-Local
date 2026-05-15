@@ -65,3 +65,15 @@ Varios módulos (`test_auth_integration`, `test_kb_integration`, `test_documents
    ```
 
    Tras `pip install -e ".[dev]"`, instala también dependencias runtime del proyecto (p. ej. `python-multipart` para uploads); si falta alguna, `pip install -e .` de nuevo.
+
+### Tests de parsing (`test_doc_parsers.py`)
+
+No requieren Postgres. Solo el venv con dependencias instaladas (`pip install -e ".[dev]"` desde `backend/`):
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest tests/test_doc_parsers.py -v --tb=short
+```
+
+Los tests de ingesta (`test_ingestion_worker.py`) sí necesitan `TEST_DATABASE_URL` y un PDF mínimo en `UPLOAD_STORAGE_DIR` (el fixture lo crea automáticamente).

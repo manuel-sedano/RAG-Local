@@ -20,6 +20,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import get_settings
 from app.db.session import get_engine
 from app.models.document import Document, DocumentIngestionRun
+from app.services.document_service import absolute_storage_path, resolve_upload_root
+from app.services.parsing.artifacts import save_text_artifacts
+from app.services.parsing.errors import ParserError, RecoverableParserError
+from app.services.parsing.orchestrator import parse_document_file
+from app.services.parsing.pipeline_context import IngestPipelineContext
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -111,15 +116,18 @@ def _is_already_ingested(document: Document) -> bool:
     return document.status == "READY" and bool(document.chunks)
 
 
-def _pipeline_ingest_document(session: Session, document: Document) -> dict[str, Any]:
-    """Ejecuta el pipeline de ingesta por etapas.
+def _map_parser_error(exc: ParserError) -> IngestionError:
+    if isinstance(exc, RecoverableParserError):
+        return IngestionError(exc.code)
+    return IngestionError(exc.code)
 
-    De momento las etapas son stubs que solo miden tiempos; la lógica
-    real de parse/OCR/chunk/embed/qdrant se implementará en otras
-    features, pero la forma general se mantiene.
-    """
+
+def _pipeline_ingest_document(session: Session, document: Document) -> dict[str, Any]:
+    """Ejecuta el pipeline de ingesta por etapas."""
 
     metrics: dict[str, Any] = {}
+    ctx = IngestPipelineContext()
+    settings = get_settings()
 
     def _stage(name: str, fn) -> None:
         start = time.perf_counter()
@@ -127,21 +135,48 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
         elapsed_ms = (time.perf_counter() - start) * 1000
         metrics[f"ingest_{name}_ms"] = round(elapsed_ms, 2)
 
-    settings = get_settings()
-
     def antivirus() -> None:
         if not settings.environment:
             raise IngestionError("invalid_environment")
-        time.sleep(0)  # placeholder ligero
+        time.sleep(0)  # placeholder: ClamAV en feat/security-clamav
 
     def parse() -> None:
-        time.sleep(0)
+        file_path = absolute_storage_path(settings, document.storage_path)
+        try:
+            parsed = parse_document_file(file_path, document.mime_type, settings)
+        except ParserError as e:
+            raise _map_parser_error(e) from e
+        ctx.parsed = parsed
+        document.page_count = parsed.page_count or None
+        session.add(document)
+        metrics["parse_parser"] = parsed.parser_used
+        metrics["parse_page_count"] = parsed.page_count
+        metrics["parse_char_count"] = len(parsed.full_text)
+        metrics["parse_needs_ocr"] = parsed.needs_ocr
+        if parsed.encoding:
+            metrics["parse_encoding"] = parsed.encoding
 
     def ocr() -> None:
-        time.sleep(0)
+        if ctx.parsed and ctx.parsed.needs_ocr:
+            metrics["ocr_status"] = "pending_tesseract"
+            # OCR real en feat/ocr-tesseract
+        else:
+            metrics["ocr_status"] = "skipped"
 
     def normalize() -> None:
-        time.sleep(0)
+        if ctx.parsed is None:
+            raise IngestionError("parse_missing")
+        ctx.normalized_text = ctx.parsed.full_text
+        if settings.parser_save_artifacts:
+            upload_root = resolve_upload_root(settings)
+            ctx.artifact_paths = save_text_artifacts(
+                upload_root,
+                kb_id=str(document.kb_id),
+                document_id=str(document.id),
+                extracted_text=ctx.parsed.full_text,
+                normalized_text=ctx.normalized_text,
+            )
+            metrics["artifacts"] = ctx.artifact_paths
 
     def chunk() -> None:
         # MVP: no generamos chunks reales aún, pero dejamos el contador
@@ -163,9 +198,10 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
     _stage("embed", embed)
     _stage("qdrant_upsert", qdrant_upsert)
 
-    # Información mínima de trazabilidad.
     metrics["document_id"] = str(document.id)
     metrics["kb_id"] = str(document.kb_id)
+    if ctx.parsed:
+        metrics["parser_used"] = ctx.parsed.parser_used
 
     return metrics
 
