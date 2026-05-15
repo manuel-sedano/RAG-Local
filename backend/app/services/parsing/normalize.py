@@ -31,6 +31,7 @@ def normalize_parsed_document(parsed: ParsedDocument) -> ParsedDocument:
                 page_number=page.page_number,
                 text=normalize_whitespace(page.text),
                 section=page.section,
+                ocr_applied=page.ocr_applied,
             )
         )
     full_text = normalize_whitespace(parsed.full_text)

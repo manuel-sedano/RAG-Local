@@ -296,18 +296,18 @@ Reglas:
 
 ### Feature branch: `feat/ocr-tesseract`
 
-- [ ] OCR:
-  - [ ] detectar cuándo se requiere OCR (threshold de texto)
-  - [ ] extraer imágenes/páginas
-  - [ ] ejecutar Tesseract con `spa`
-  - [ ] juntar texto OCR con metadatos de página
-- [ ] Performance:
-  - [ ] limitar OCR a N páginas (configurable)
-  - [ ] concurrencia OCR dedicada
-  - [ ] cache por hash de página/imagen (opcional)
-- [ ] Tests:
-  - [ ] PDF escaneado (fixtures)
-  - [ ] páginas mixtas (texto+imagen)
+- [x] ~~OCR:~~
+  - [x] ~~detectar cuándo se requiere OCR (threshold de texto)~~ — `needs_ocr` + `page_needs_ocr` / `document_needs_ocr`.
+  - [x] ~~extraer imágenes/páginas~~ — rasterizado PyMuPDF (PNG por página).
+  - [x] ~~ejecutar Tesseract con `spa`~~ — `pytesseract` + `OCR_TESSERACT_LANG=spa`.
+  - [x] ~~juntar texto OCR con metadatos de página~~ — `PageText.ocr_applied`, merge `[OCR]` en texto.
+- [x] ~~Performance:~~
+  - [x] ~~limitar OCR a N páginas (configurable)~~ — `OCR_MAX_PAGES`.
+  - [x] ~~concurrencia OCR dedicada~~ — `ThreadPoolExecutor` (`OCR_MAX_WORKERS`) + cola Celery `ocr` (`app.tasks.ocr`).
+  - [x] ~~cache por hash de página/imagen (opcional)~~ — `uploads/.ocr_cache/` (`OCR_CACHE_ENABLED`).
+- [x] ~~Tests:~~
+  - [x] ~~PDF escaneado (fixtures)~~ — `tests/test_ocr.py` (mock Tesseract).
+  - [x] ~~páginas mixtas (texto+imagen)~~ — mismo archivo (`test_mixed_pdf_only_low_text_pages_ocr`).
 
 ---
 
