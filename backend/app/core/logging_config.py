@@ -38,8 +38,7 @@ class RedactAttributesFilter(logging.Filter):
 def _redact_value(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {
-            k: ("***" if _SENSITIVE_KEY.search(k) else _redact_value(v))
-            for k, v in obj.items()
+            k: ("***" if _SENSITIVE_KEY.search(k) else _redact_value(v)) for k, v in obj.items()
         }
     if isinstance(obj, list):
         return [_redact_value(v) for v in obj]

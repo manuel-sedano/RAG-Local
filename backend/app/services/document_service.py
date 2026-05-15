@@ -98,7 +98,10 @@ async def save_upload_stream(
     file_obj: Any,
     max_bytes: int,
 ) -> tuple[Path, str, int, str]:
-    """Escribe el archivo bajo el root de uploads; devuelve (ruta absoluta, storage_path relativo, size, sha256)."""
+    """Escribe el archivo bajo el root de uploads.
+
+    Devuelve (ruta absoluta, storage_path relativo, size, sha256).
+    """
     ext = extension_for_mime(declared_mime)
     if not ext:
         msg = "Extensión desconocida para el MIME declarado."
@@ -314,7 +317,8 @@ def status_payload(doc: Document) -> dict[str, Any]:
             "qdrant_upsert": pending,
         }
     else:
-        stages = {k: pending for k in ("antivirus", "parse", "ocr", "normalize", "chunk", "embed", "qdrant_upsert")}
+        _keys = ("antivirus", "parse", "ocr", "normalize", "chunk", "embed", "qdrant_upsert")
+        stages = {k: pending for k in _keys}
 
     return {
         "document_id": str(doc.id),

@@ -149,9 +149,7 @@ class Chunk(Base):
     )
 
     document: Mapped[Document] = relationship("Document", back_populates="chunks")
-    knowledge_base: Mapped[KnowledgeBase] = relationship(
-        "KnowledgeBase", back_populates="chunks"
-    )
+    knowledge_base: Mapped[KnowledgeBase] = relationship("KnowledgeBase", back_populates="chunks")
     citations: Mapped[list[MessageCitation]] = relationship(
         "MessageCitation", back_populates="chunk"
     )

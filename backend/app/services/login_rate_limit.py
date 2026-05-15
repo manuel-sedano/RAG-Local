@@ -126,8 +126,7 @@ def record_failed_password_attempt(
         return
     k = max(
         0,
-        (n - settings.auth_failed_password_threshold)
-        // settings.auth_failed_password_threshold,
+        (n - settings.auth_failed_password_threshold) // settings.auth_failed_password_threshold,
     )
     seconds = min(
         settings.auth_lockout_max_seconds,

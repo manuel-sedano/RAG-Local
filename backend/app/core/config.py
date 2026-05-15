@@ -29,8 +29,7 @@ class Settings(BaseSettings):
 
     cors_allow_origins: str = Field(
         default=(
-            "http://localhost:3000,http://localhost,http://127.0.0.1:3000,"
-            "http://127.0.0.1"
+            "http://localhost:3000,http://localhost,http://127.0.0.1:3000," "http://127.0.0.1"
         ),
     )
 

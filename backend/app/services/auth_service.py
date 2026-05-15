@@ -199,7 +199,7 @@ def logout_user(
 
     if not raw_refresh:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "VALIDATION_ERROR",
                 "message": "Se requiere refresh_token salvo que all_devices sea true.",

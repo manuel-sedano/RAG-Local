@@ -141,8 +141,8 @@ async def upload_document(
             },
         ) from e
 
-    src = (source.strip()[:8192] if source and source.strip() else None)
-    lang = (language.strip()[:16] if language and language.strip() else None)
+    src = source.strip()[:8192] if source and source.strip() else None
+    lang = language.strip()[:16] if language and language.strip() else None
     max_bytes = settings.max_upload_mb * 1024 * 1024
     fname = safe_filename_original(file.filename)
 
@@ -158,7 +158,7 @@ async def upload_document(
         code = str(e)
         if code == "UPLOAD_TOO_LARGE":
             raise HTTPException(
-                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status.HTTP_413_CONTENT_TOO_LARGE,
                 detail={
                     "code": "UPLOAD_TOO_LARGE",
                     "message": f"El archivo supera el límite de {settings.max_upload_mb} MB.",
@@ -402,7 +402,7 @@ def download_document_file(
     fname = doc.filename_original
     ascii_name = ascii_fallback_filename(fname)
     utf8_q = quote(fname, safe="")
-    cd = f'{disp}; filename="{ascii_name}"; filename*=UTF-8\'\'{utf8_q}'
+    cd = f"{disp}; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_q}"
     return FileResponse(
         path=str(path),
         media_type=doc.mime_type,

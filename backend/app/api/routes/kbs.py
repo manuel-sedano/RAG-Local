@@ -152,7 +152,7 @@ def patch_kb(
     fields = body.model_fields_set
     if not fields:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "VALIDATION_ERROR",
                 "message": "Debes enviar al menos un campo para actualizar.",
@@ -161,7 +161,7 @@ def patch_kb(
         )
     if "name" in fields and body.name is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "VALIDATION_ERROR",
                 "message": "El nombre no puede quedar vacío.",
@@ -183,9 +183,7 @@ def patch_kb(
     name_val = body.name if "name" in fields else None
     unset_description = "description" in fields and body.description is None
     desc_val = (
-        body.description
-        if "description" in fields and body.description is not None
-        else None
+        body.description if "description" in fields and body.description is not None else None
     )
 
     update_knowledge_base(

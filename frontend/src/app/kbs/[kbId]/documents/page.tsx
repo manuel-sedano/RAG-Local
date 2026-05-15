@@ -50,6 +50,11 @@ export default function KbDocumentsPage() {
   const kbId = params.kbId ?? "";
   const { user, ready } = useAuth();
 
+  const invalidKbIdMessage = React.useMemo(() => {
+    if (UUID_RE.test(kbId)) return null;
+    return "Identificador de base de conocimiento no válido.";
+  }, [kbId]);
+
   const [kbName, setKbName] = React.useState<string | null>(null);
   const [kbError, setKbError] = React.useState<string | null>(null);
   const [items, setItems] = React.useState<DocumentListItemDto[]>([]);
@@ -78,11 +83,7 @@ export default function KbDocumentsPage() {
       router.replace("/login");
       return;
     }
-    if (!validId) {
-      setKbError("Identificador de base de conocimiento no válido.");
-      setListLoading(false);
-      return;
-    }
+    if (invalidKbIdMessage) return;
     let cancelled = false;
     (async () => {
       try {
@@ -101,12 +102,12 @@ export default function KbDocumentsPage() {
     return () => {
       cancelled = true;
     };
-  }, [ready, user, router, kbId, validId]);
+  }, [ready, user, router, kbId, invalidKbIdMessage]);
 
   React.useEffect(() => {
-    if (!ready || !user || !validId || kbError) return;
-    void loadList();
-  }, [ready, user, validId, kbError, loadList]);
+    if (!ready || !user || invalidKbIdMessage || kbError) return;
+    void Promise.resolve().then(() => loadList());
+  }, [ready, user, invalidKbIdMessage, kbError, loadList]);
 
   const needsStatusPoll = React.useMemo(
     () => items.some((d) => d.status === "UPLOADED" || d.status === "PROCESSING"),
@@ -114,13 +115,13 @@ export default function KbDocumentsPage() {
   );
 
   React.useEffect(() => {
-    if (!autoPoll || !needsStatusPoll || !validId || kbError) return;
+    if (!autoPoll || !needsStatusPoll || invalidKbIdMessage || kbError) return;
     const id = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       void loadList();
     }, 5000);
     return () => window.clearInterval(id);
-  }, [autoPoll, needsStatusPoll, loadList, validId, kbError]);
+  }, [autoPoll, needsStatusPoll, loadList, invalidKbIdMessage, kbError]);
 
   async function onDelete(doc: DocumentListItemDto) {
     const ok = window.confirm(`¿Eliminar «${doc.filename_original}»?`);
@@ -186,7 +187,9 @@ export default function KbDocumentsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
           <p className="text-sm text-muted-foreground">
-            {kbName ? (
+            {invalidKbIdMessage ? (
+              <span className="text-destructive">{invalidKbIdMessage}</span>
+            ) : kbName ? (
               <>
                 Base: <span className="font-medium text-foreground">{kbName}</span>
               </>
@@ -207,7 +210,7 @@ export default function KbDocumentsPage() {
         </div>
       </div>
 
-      {kbError ? null : validId ? (
+      {invalidKbIdMessage || kbError ? null : validId ? (
         <>
           <DocumentUploadZone kbId={kbId} disabled={!!kbError} onUploaded={() => void loadList()} />
 

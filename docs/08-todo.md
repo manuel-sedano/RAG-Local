@@ -226,7 +226,7 @@ Reglas:
     - [x] ~~language~~
 - [x] ~~Docker:~~
   - [x] ~~volumen `uploads` persistente (`rag_vol_uploads` en `worker`; `UPLOAD_STORAGE_DIR` en backend local)~~
-  - [ ] permisos y ownership (WSL)
+  - [x] ~~permisos y ownership (WSL)~~ — Guía y comprobaciones manuales en `docs/13-troubleshooting.md` (uploads / `rag_vol_uploads`).
 - [x] ~~Testing:~~
   - [x] ~~tests upload OK (pdf/docx/txt)~~ — PDF en `tests/test_documents_integration.py`; docx/txt cubiertos por MIME + magic en código
   - [x] ~~tests upload invalid mime~~

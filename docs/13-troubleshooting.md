@@ -117,6 +117,42 @@ Más contexto: `docs/01-deployment.md` §3 (Git en WSL con repo en `/mnt/c`).
 2. `docker compose ps` → `traefik` y `frontend` en estado `running`.
 3. Repite `curl -fsS http://localhost/health` (desde WSL o PowerShell; en WSL, `localhost` suele reenviarse al mismo host que Docker Desktop).
 
+### Uploads: volumen `rag_vol_uploads`, `uploads/` en el host y ownership (WSL)
+
+**Contexto**
+
+- En **Docker Compose**, el servicio `worker` monta el volumen nombrado `rag_vol_uploads` en `/uploads` (datos bajo control del motor Docker; el UID dentro del contenedor suele ser root `0:0` u otro usuario de la imagen).
+- Si ejecutas el **backend FastAPI en el host (WSL)** con `UPLOAD_STORAGE_DIR` vacío, los archivos se escriben en **`<repo>/uploads/`** con el UID de tu usuario WSL (p. ej. `1000:1000`). Eso es correcto para desarrollo local sin Docker para el API.
+
+**Cuándo importa el “ownership”**
+
+- Si más adelante **montas la misma carpeta del host** en un contenedor (bind mount) y el proceso del contenedor **no** coincide con tu UID, puedes ver `Permission denied` al leer/escribir o archivos creados como `root` en el host.
+- Con **solo volumen nombrado** (`rag_vol_uploads`) y API en host **sin** compartir carpeta: no hay conflicto habitual; el worker y el API no comparten filesystem salvo que tú lo configures.
+
+**Cómo comprobarlo (manual)**
+
+1. **Volumen Docker** (con stack arriba):
+
+   ```bash
+   docker compose up -d worker
+   docker exec rag_worker ls -la /uploads
+   ```
+
+   Deberías ver `/uploads` accesible; el propietario depende de la imagen (suele ser `root`).
+
+2. **Carpeta del repo en WSL** (API local con `uvicorn`):
+
+   ```bash
+   ls -la uploads
+   touch uploads/.perm_test && rm uploads/.perm_test
+   ```
+
+   Tras un upload por API, comprueba que los ficheros bajo `uploads/<uuid-kb>/` pertenecen a tu usuario (`ls -la uploads/...`).
+
+3. **Si necesitas alinear UID en un bind mount** (solo si enlazas host → contenedor): ajusta `user:` en el servicio en `docker-compose.yml` al UID/GID de WSL (`id -u` / `id -g`) o usa `chown` en el host de forma consciente (documenta el procedimiento en tu entorno).
+
+**Referencia:** `docker/CONVENTIONS.md` (volumen `rag_vol_uploads`), `docs/04-env-example.md` (`UPLOAD_STORAGE_DIR`).
+
 ### Síntoma: Lentitud extrema al instalar dependencias (node_modules, pip)
 
 **Causa común**

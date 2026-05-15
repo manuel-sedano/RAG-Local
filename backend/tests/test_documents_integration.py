@@ -178,7 +178,8 @@ def test_upload_duplicate_blocked(doc_client: tuple) -> None:
     kb_id = r_kb.json()["id"]
     pdf = _minimal_pdf()
     files = {"file": ("a.pdf", io.BytesIO(pdf), "application/pdf")}
-    assert client.post(f"/api/kbs/{kb_id}/documents/upload", headers=h, files=files).status_code == 202
+    r1 = client.post(f"/api/kbs/{kb_id}/documents/upload", headers=h, files=files)
+    assert r1.status_code == 202
     r2 = client.post(
         f"/api/kbs/{kb_id}/documents/upload",
         headers=h,
