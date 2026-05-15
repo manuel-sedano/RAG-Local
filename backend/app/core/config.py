@@ -59,6 +59,22 @@ class Settings(BaseSettings):
 
     qdrant_host: str = Field(default="qdrant")
     qdrant_port: int = Field(default=6333)
+    qdrant_collection: str = Field(
+        default="rag_chunks_v1",
+        description="Colección global de chunks vectoriales en Qdrant.",
+    )
+    qdrant_enabled: bool = Field(
+        default=True,
+        description="Si false, se omiten upsert/delete en Qdrant (solo depuración).",
+    )
+    qdrant_upsert_batch_size: int = Field(default=64, ge=1, le=512)
+    qdrant_timeout_seconds: float = Field(default=30.0, ge=1.0)
+    qdrant_snippet_max_chars: int = Field(
+        default=500,
+        ge=0,
+        le=4000,
+        description="Máximo de caracteres del chunk en payload.text (snippet).",
+    )
 
     ollama_host: str = Field(default="ollama")
     ollama_port: int = Field(default=11434)

@@ -64,8 +64,28 @@ def test_fake_embed_direct_batch_sizes() -> None:
     assert len(batch_b) == 1
 
 
-def test_sentence_transformer_backend_requires_dependency() -> None:
+def test_sentence_transformer_backend_requires_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Falla con código estable si falta sentence-transformers (sin depender del venv)."""
+    import builtins
+
+    from app.services.embeddings import sentence_transformer as st_module
+
     settings = _test_settings(embedding_backend="sentence_transformers")
     assert settings.resolved_embedding_backend() == "sentence_transformers"
-    with pytest.raises(EmbeddingError, match="embedding_dependency_missing|sentence"):
-        embed_texts(["hola"], settings)
+
+    real_import = builtins.__import__
+
+    def _import_without_sentence_transformers(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "sentence_transformers" or name.startswith("sentence_transformers."):
+            raise ImportError("mock: sentence-transformers no instalado")
+        return real_import(name, globals, locals, fromlist, level)
+
+    st_module._load_model.cache_clear()
+    monkeypatch.setattr(builtins, "__import__", _import_without_sentence_transformers)
+    try:
+        with pytest.raises(EmbeddingError, match="embedding_dependency_missing"):
+            embed_texts(["hola"], settings)
+    finally:
+        st_module._load_model.cache_clear()

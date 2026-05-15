@@ -23,6 +23,7 @@ from app.models.document import Document, DocumentIngestionRun
 from app.services.document_service import absolute_storage_path, resolve_upload_root
 from app.services.chunking import chunk_normalized_text, chunking_config_hash, persist_document_chunks
 from app.services.embeddings import EmbeddingError, embed_document_chunks
+from app.services.qdrant import QdrantStoreError, upsert_document_vectors
 from app.services.parsing.artifacts import save_text_artifacts
 from app.services.parsing.errors import ParserError, RecoverableParserError
 from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
@@ -230,9 +231,19 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
             raise IngestionError(e.code) from e
 
     def qdrant_upsert() -> None:
-        if ctx.point_vectors:
-            metrics["qdrant_vectors_pending"] = len(ctx.point_vectors)
-        time.sleep(0)
+        if not ctx.point_vectors:
+            metrics["qdrant_status"] = "skipped"
+            return
+        try:
+            qdrant_metrics = upsert_document_vectors(
+                session,
+                document,
+                ctx.point_vectors,
+                settings,
+            )
+            metrics.update(qdrant_metrics)
+        except QdrantStoreError as e:
+            raise IngestionError(e.code) from e
 
     _stage("antivirus", antivirus)
     _stage("parse", parse)

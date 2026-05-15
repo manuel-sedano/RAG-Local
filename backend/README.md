@@ -137,3 +137,18 @@ Worker Celery con cola OCR dedicada (cuando uses worker real, no solo eager):
 ```bash
 celery -A app.tasks.celery_app:celery_app worker -Q ingest,ocr,embed -l info
 ```
+
+### Tests de Qdrant (`test_qdrant_integration.py`)
+
+Tras ingesta, los vectores se upsertan en la colección global **`rag_chunks_v1`** (cosine, dimensión del modelo de embeddings). Los tests de integración de ingesta desactivan Qdrant (`QDRANT_ENABLED=false`) para no depender del servicio.
+
+**Qdrant real (opcional):**
+
+```bash
+docker compose up -d qdrant
+export TEST_QDRANT_URL="http://127.0.0.1:6333"
+cd backend && source .venv/bin/activate && pip install -e ".[dev]"
+pytest tests/test_qdrant_integration.py -v --tb=short
+```
+
+Variables: `QDRANT_HOST`, `QDRANT_PORT`, `QDRANT_COLLECTION`, `QDRANT_ENABLED`, `QDRANT_SNIPPET_MAX_CHARS`. Al borrar un documento (soft delete), se eliminan puntos en Qdrant por filtro `kb_id` + `doc_id`. Payload documentado en `docs/10-database-schema.md`.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import uuid
@@ -18,7 +19,10 @@ from app.core.config import Settings
 from app.models.document import Document
 from app.models.user import User
 from app.services.auth_audit import log_security_event
+from app.services.qdrant import QdrantStoreError, delete_document_vectors
 from app.services.upload_media import extension_for_mime, magic_matches_declared_mime
+
+logger = logging.getLogger(__name__)
 
 # Estados persistidos en `documents.status`
 UPLOADED = "UPLOADED"
@@ -255,7 +259,16 @@ def soft_delete_document(
     doc: Document,
     user: User,
     ip_address: str | None,
+    settings: Settings,
 ) -> None:
+    try:
+        delete_document_vectors(settings, kb_id=doc.kb_id, doc_id=doc.id)
+    except QdrantStoreError as e:
+        logger.warning(
+            "No se pudieron borrar vectores en Qdrant para doc %s: %s",
+            doc.id,
+            e.message,
+        )
     doc.deleted_at = datetime.now(UTC)
     doc.status = DELETED
     db.flush()
