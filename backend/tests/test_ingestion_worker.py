@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import os
 import uuid
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import fitz
 import pytest
 from alembic import command
 from fastapi.testclient import TestClient
@@ -80,13 +82,26 @@ def ingest_postgres_url() -> str:
     return url
 
 
+def _write_minimal_pdf(path: Path, text: str = "Texto de prueba para ingesta.") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), text)
+    doc.save(path)
+    doc.close()
+
+
 @pytest.fixture
 def ingest_db(
     ingest_postgres_url: str,
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> tuple[sessionmaker[Session], str, str, str, uuid.UUID, uuid.UUID]:
+    upload_root = tmp_path / "ingest_uploads"
+    upload_root.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("DATABASE_URL", ingest_postgres_url)
     monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setenv("UPLOAD_STORAGE_DIR", str(upload_root))
     clear_settings_cache()
     settings = get_settings()
     engine = create_engine(ingest_postgres_url)
@@ -111,11 +126,12 @@ def ingest_db(
         db.add(kb)
         db.flush()
         db.add(KbMembership(kb_id=kb.id, user_id=user.id, role="owner"))
+        storage_rel = f"{kb.id}/sample.pdf"
         doc = Document(
             kb_id=kb.id,
             uploaded_by_user_id=user.id,
             filename_original="sample.pdf",
-            storage_path=f"{kb.id}/sample.pdf",
+            storage_path=storage_rel,
             mime_type="application/pdf",
             size_bytes=128,
             sha256=uuid.uuid4().hex + uuid.uuid4().hex,
@@ -123,6 +139,7 @@ def ingest_db(
         )
         db.add(doc)
         db.commit()
+        _write_minimal_pdf(upload_root / storage_rel)
         kb_id = kb.id
         doc_id = doc.id
     engine.dispose()
@@ -155,6 +172,8 @@ def test_ingest_success_state_transition(ingest_db: tuple) -> None:
     assert run.metrics is not None
     assert "ingest_parse_ms" in run.metrics
     assert run.metrics["document_id"] == str(doc_id)
+    assert run.metrics.get("parse_parser") == "pymupdf"
+    assert doc.page_count is not None and doc.page_count >= 1
 
 
 def test_ingest_idempotent_when_ready_with_chunks(ingest_db: tuple) -> None:

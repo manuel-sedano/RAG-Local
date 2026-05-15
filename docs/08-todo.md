@@ -268,46 +268,46 @@ Reglas:
 
 ### Feature branch: `feat/doc-parsers`
 
-- [ ] Implementar extractores:
-  - [ ] PDF extractor (PyMuPDF):
-    - [ ] texto por página
-    - [ ] conteo páginas
-    - [ ] detectar “poco texto” para disparar OCR
-  - [ ] DOCX extractor (python-docx):
-    - [ ] extraer títulos/párrafos
-  - [ ] TXT extractor:
-    - [ ] detectar encoding
-    - [ ] normalización básica
-- [ ] Integrar Unstructured (si aplica):
-  - [ ] particionado semántico
-  - [ ] limpieza adicional
-- [ ] Manejo de errores:
-  - [ ] errores recuperables vs fatales
-  - [ ] timeouts por parser
-- [ ] Persistencia (opcional):
-  - [ ] guardar `document_artifacts` (extracted/normalized)
-- [ ] Tests:
-  - [ ] PDFs con texto normal
-  - [ ] PDFs con caracteres especiales (acentos)
-  - [ ] DOCX con listas/headers
-  - [ ] TXT con latin1
+- [x] ~~Implementar extractores:~~
+  - [x] ~~PDF extractor (PyMuPDF):~~
+    - [x] ~~texto por página~~
+    - [x] ~~conteo páginas~~
+    - [x] ~~detectar “poco texto” para disparar OCR~~ — `needs_ocr` + métrica `parse_needs_ocr` (OCR real en `feat/ocr-tesseract`).
+  - [x] ~~DOCX extractor (python-docx):~~
+    - [x] ~~extraer títulos/párrafos~~
+  - [x] ~~TXT extractor:~~
+    - [x] ~~detectar encoding~~ — `charset-normalizer` + UTF-8 / Latin-1.
+    - [x] ~~normalización básica~~ — `app/services/parsing/normalize.py`.
+- [x] ~~Integrar Unstructured (si aplica):~~
+  - [x] ~~particionado semántico~~ — fallback opcional (`UNSTRUCTURED_ENABLED=true` + paquete instalado aparte).
+  - [x] ~~limpieza adicional~~ — vía partición Unstructured cuando el primario falla o devuelve poco texto.
+- [x] ~~Manejo de errores:~~
+  - [x] ~~errores recuperables vs fatales~~ — `RecoverableParserError` / `FatalParserError`.
+  - [x] ~~timeouts por parser~~ — `PARSE_TIMEOUT_SECONDS`.
+- [x] ~~Persistencia (opcional):~~
+  - [x] ~~guardar `document_artifacts` (extracted/normalized)~~ — en disco `uploads/{kb_id}/artifacts/{doc_id}/` (`PARSER_SAVE_ARTIFACTS`).
+- [x] ~~Tests:~~
+  - [x] ~~PDFs con texto normal~~
+  - [x] ~~PDFs con caracteres especiales (acentos)~~
+  - [x] ~~DOCX con listas/headers~~
+  - [x] ~~TXT con latin1~~
 
 ## Feature: OCR
 
 ### Feature branch: `feat/ocr-tesseract`
 
-- [ ] OCR:
-  - [ ] detectar cuándo se requiere OCR (threshold de texto)
-  - [ ] extraer imágenes/páginas
-  - [ ] ejecutar Tesseract con `spa`
-  - [ ] juntar texto OCR con metadatos de página
-- [ ] Performance:
-  - [ ] limitar OCR a N páginas (configurable)
-  - [ ] concurrencia OCR dedicada
-  - [ ] cache por hash de página/imagen (opcional)
-- [ ] Tests:
-  - [ ] PDF escaneado (fixtures)
-  - [ ] páginas mixtas (texto+imagen)
+- [x] ~~OCR:~~
+  - [x] ~~detectar cuándo se requiere OCR (threshold de texto)~~ — `needs_ocr` + `page_needs_ocr` / `document_needs_ocr`.
+  - [x] ~~extraer imágenes/páginas~~ — rasterizado PyMuPDF (PNG por página).
+  - [x] ~~ejecutar Tesseract con `spa`~~ — `pytesseract` + `OCR_TESSERACT_LANG=spa`.
+  - [x] ~~juntar texto OCR con metadatos de página~~ — `PageText.ocr_applied`, merge `[OCR]` en texto.
+- [x] ~~Performance:~~
+  - [x] ~~limitar OCR a N páginas (configurable)~~ — `OCR_MAX_PAGES`.
+  - [x] ~~concurrencia OCR dedicada~~ — `ThreadPoolExecutor` (`OCR_MAX_WORKERS`) + cola Celery `ocr` (`app.tasks.ocr`).
+  - [x] ~~cache por hash de página/imagen (opcional)~~ — `uploads/.ocr_cache/` (`OCR_CACHE_ENABLED`).
+- [x] ~~Tests:~~
+  - [x] ~~PDF escaneado (fixtures)~~ — `tests/test_ocr.py` (mock Tesseract).
+  - [x] ~~páginas mixtas (texto+imagen)~~ — mismo archivo (`test_mixed_pdf_only_low_text_pages_ocr`).
 
 ---
 
@@ -681,7 +681,127 @@ Reglas:
 
 ---
 
-## Fase 14 — Documentación y scripts operativos
+## Fase 14 — Integración Docker (stack real, sustitución de placeholders)
+
+**Objetivo:** poder levantar **backend FastAPI**, **worker Celery**, **frontend Next.js** y dependencias (Postgres, Redis, Qdrant, Ollama, Traefik) con `docker compose up`, con variables de entorno coherentes para **local**, **test** y **prod**, y pruebas manuales (UI + Swagger) y automáticas (smoke).
+
+**Contexto actual:** Fase 0 dejó `frontend`, `backend` y `worker` como **placeholders** (`docker/placeholders/*`). Esta fase los reemplaza por imágenes del código en `backend/` y `frontend/`.
+
+**Orden sugerido de ramas:** backend/worker → frontend → compose/env → perfiles test/prod → smoke/CI.
+
+---
+
+## Feature: imágenes backend y worker
+
+### Feature branch: `chore/docker-backend-worker`
+
+- [ ] Docker:
+  - [ ] `docker/backend/Dockerfile` (multi-stage: deps + runtime, usuario no-root)
+  - [ ] `docker/worker/Dockerfile` (misma base que API + comando Celery)
+  - [ ] `.dockerignore` en `backend/` (venv, `__pycache__`, tests, `.env`)
+- [ ] Backend (servicio `backend` en compose):
+  - [ ] sustituir build `docker/placeholders/backend` por imagen real
+  - [ ] comando: `uvicorn` (o gunicorn+uvicorn workers en prod)
+  - [ ] `depends_on` Postgres/Redis con `condition: service_healthy`
+  - [ ] variables: `DATABASE_URL`, `REDIS_*`, `JWT_*`, `UPLOAD_STORAGE_DIR`, `CORS_*`, parsing/Celery
+  - [ ] volumen compartido `rag_vol_uploads` montado en `/uploads` (misma ruta que worker)
+  - [ ] healthcheck HTTP: `GET /api/health` (503 si dependencia cae)
+  - [ ] exponer Swagger/OpenAPI en Traefik (`/api/docs`, `/api/openapi.json`)
+- [ ] Worker (servicio `worker`):
+  - [ ] sustituir placeholder `sleep infinity` por worker Celery real
+  - [ ] colas `ingest`, `ocr`, `embed` (misma config que local)
+  - [ ] mismo volumen `/uploads` y mismas envs de DB/Redis/Qdrant/Ollama que el API
+  - [ ] healthcheck ligero (proceso Celery o script `celery inspect ping`)
+- [ ] Migraciones:
+  - [ ] documentar o automatizar `alembic upgrade head` al arranque (entrypoint opcional) o paso manual en `01-deployment.md`
+  - [ ] seed dev opcional (`scripts/seed_dev_user.py`) solo en perfil `local`
+- [ ] Deprecación:
+  - [ ] marcar `docker/placeholders/backend` y `docker/placeholders/worker` como legacy o eliminar tras validar stack
+
+---
+
+## Feature: imagen frontend
+
+### Feature branch: `chore/docker-frontend`
+
+- [ ] Docker:
+  - [ ] `docker/frontend/Dockerfile` (build Next.js `standalone` + runtime mínimo)
+  - [ ] `.dockerignore` en `frontend/` (`node_modules`, `.next`, `.env*`)
+- [ ] Frontend (servicio `frontend`):
+  - [ ] sustituir build `docker/placeholders/frontend`
+  - [ ] build-args / env: `NEXT_PUBLIC_API_BASE_URL` (p. ej. `http://localhost/api`)
+  - [ ] healthcheck: `GET /` o ruta `/health` si se añade
+  - [ ] labels Traefik: `PathPrefix(`/`)` con prioridad menor que `/api`
+- [ ] Deprecación:
+  - [ ] marcar `docker/placeholders/frontend` como legacy o eliminar tras validar stack
+
+---
+
+## Feature: Compose integrado (red, volúmenes, Traefik)
+
+### Feature branch: `chore/docker-compose-real-stack`
+
+- [ ] `docker-compose.yml` (o `compose.yaml`):
+  - [ ] servicios reales referencian `docker/backend`, `docker/worker`, `docker/frontend`
+  - [ ] red `rag_net` sin cambios; solo Traefik publica `80/443` al host
+  - [ ] volúmenes: `rag_vol_postgres`, `rag_vol_uploads`, `rag_vol_qdrant`, `rag_vol_ollama` (y opcionales clamav/observability)
+  - [ ] **no** publicar puertos de Postgres/Redis en prod (mantener `127.0.0.1` solo en perfil `local` / override)
+- [ ] Traefik:
+  - [ ] rutas: `/` → frontend, `/api` → backend (incl. WebSocket futuro `/socket.io`)
+  - [ ] timeouts y límites de body alineados con `MAX_UPLOAD_MB`
+- [ ] Envs:
+  - [ ] alinear `.env.example` raíz con nombres de servicio Docker (`postgres`, `redis`, `qdrant`, `ollama`)
+  - [ ] documentar `UPLOAD_STORAGE_DIR=/uploads` en API y worker
+  - [ ] `CELERY_BROKER_URL=redis://redis:6379/0` dentro de la red compose
+- [ ] Arranque:
+  - [ ] `docker compose up -d --build` levanta stack usable sin `npm run dev` ni uvicorn en host
+  - [ ] orden: infra (postgres, redis) → migrate → backend + worker → frontend
+- [ ] Docs (mínimo en esta rama):
+  - [ ] actualizar `docs/02-smoke-test.md` (dejar de asumir solo placeholders)
+  - [ ] actualizar `docs/01-deployment.md` sección “backend real en compose”
+
+---
+
+## Feature: perfiles y entornos test / prod
+
+### Feature branch: `chore/docker-profiles-test-prod`
+
+- [ ] Archivos:
+  - [ ] `docker-compose.override.yml.example` (local: puertos `5432`/`6379` al host, hot-reload opcional)
+  - [ ] `docker-compose.test.yml` o perfil Compose `test` (DB `rag_test`, `ENVIRONMENT=test`, eager Celery si aplica)
+  - [ ] `.env.production.example` / `.env.test.example` alineados con servicios por nombre DNS interno
+- [ ] Test:
+  - [ ] `TEST_DATABASE_URL` apuntando a Postgres del compose (perfil test) para pytest en host o contenedor `backend-test`
+  - [ ] documentar ejecución: `docker compose --profile test run --rm backend pytest …`
+- [ ] Prod (local “production-like”):
+  - [ ] sin bind mounts de código; solo volúmenes nombrados
+  - [ ] secretos largos obligatorios (`JWT_SECRET`, `PASSWORD_PEPPER`)
+  - [ ] `LOG_LEVEL=WARNING`, CORS restringido
+- [ ] CI (opcional en esta rama o en `test/docker-stack-smoke`):
+  - [ ] job GitHub Actions: `compose up` + health + pytest smoke
+
+---
+
+## Feature: smoke y validación del stack Docker
+
+### Feature branch: `test/docker-stack-smoke`
+
+- [ ] Scripts:
+  - [ ] `scripts/docker-smoke.sh`: compose up, esperar health, curl `/api/health`, `/`, login opcional
+  - [ ] exit code distinto de 0 si falla alguna dependencia crítica
+- [ ] Testing automático:
+  - [ ] tests de integración ejecutables contra API en `http://localhost/api` (variable `SMOKE_BASE_URL`)
+  - [ ] o contenedor one-shot que corre subset de pytest con `TEST_DATABASE_URL` interno
+- [ ] Manual (checklist en `docs/02-smoke-test.md`):
+  - [ ] Swagger: `http://localhost/api/docs` — login, CRUD KB, upload PDF
+  - [ ] UI: `http://localhost/` — login, subir documento, ver estado ingesta
+  - [ ] worker: documento pasa a `READY` (o `FAILED` con error legible)
+- [ ] Limpieza:
+  - [ ] `scripts/docker-smoke-down.sh` o documentar `docker compose down` / `down -v`
+
+---
+
+## Fase 15 — Documentación y scripts operativos
 
 ## Feature: scripts
 
@@ -711,7 +831,7 @@ Reglas:
 
 ---
 
-## Fase 15 — Performance tuning (local)
+## Fase 16 — Performance tuning (local)
 
 ### Feature branch: `perf/ingestion-tuning`
 

@@ -82,6 +82,52 @@ class Settings(BaseSettings):
     celery_result_backend: str = Field(default="", repr=False)
     celery_task_always_eager: bool = Field(default=False)
 
+    parse_timeout_seconds: float = Field(
+        default=120.0,
+        ge=1.0,
+        description="Tiempo máximo por documento en la etapa parse (segundos).",
+    )
+    ocr_min_chars_per_page: int = Field(
+        default=40,
+        ge=0,
+        description="Si el PDF tiene menos caracteres promedio por página, se marca needs_ocr.",
+    )
+    parser_save_artifacts: bool = Field(
+        default=True,
+        description="Guardar extracted/normalized en disco bajo uploads/artifacts.",
+    )
+    unstructured_enabled: bool = Field(
+        default=False,
+        description="Usar Unstructured como fallback si está instalado (pip extra).",
+    )
+
+    ocr_enabled: bool = Field(default=True, description="Habilitar OCR Tesseract en ingesta PDF.")
+    ocr_max_pages: int = Field(
+        default=50,
+        ge=1,
+        le=500,
+        description="Máximo de páginas a procesar con OCR por documento.",
+    )
+    ocr_tesseract_lang: str = Field(
+        default="spa",
+        description="Idioma Tesseract (paquete del sistema, p. ej. tesseract-ocr-spa).",
+    )
+    ocr_tesseract_cmd: str = Field(
+        default="",
+        description="Ruta al binario tesseract si no está en PATH.",
+    )
+    ocr_cache_enabled: bool = Field(
+        default=True,
+        description="Cachear texto OCR por página en uploads/.ocr_cache.",
+    )
+    ocr_dpi: int = Field(default=200, ge=72, le=400, description="DPI al rasterizar páginas PDF.")
+    ocr_max_workers: int = Field(
+        default=2,
+        ge=1,
+        le=8,
+        description="Hilos paralelos para OCR por página.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
