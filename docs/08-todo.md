@@ -357,24 +357,24 @@ Reglas:
 
 ### Feature branch: `feat/qdrant-collection-v1`
 
-- [ ] Crear/asegurar colección:
-  - [ ] nombre `rag_chunks_v1`
-  - [ ] distance metric (cosine)
-  - [ ] payload schema (documentado)
-- [ ] Upsert:
-  - [ ] generar `point_id` estable (uuid o compuesto)
-  - [ ] upsert por chunk con payload completo:
-    - [ ] `kb_id`, `doc_id`, `chunk_id`
-    - [ ] `tags`, `source`, `mime_type`, `language`
-    - [ ] `page_start`, `page_end`, `chunk_index`
-    - [ ] snippet `text` (opcional)
-- [ ] Delete:
-  - [ ] borrar por `doc_id` cuando se elimina documento
-  - [ ] consistencia con soft delete Postgres
-- [ ] Tests:
-  - [ ] upsert + search básico
-  - [ ] filtro por `kb_id`
-  - [ ] delete por filtro
+- [x] ~~Crear/asegurar colección:~~
+  - [x] ~~nombre `rag_chunks_v1`~~ — `QDRANT_COLLECTION` + `ensure_collection` en `app/services/qdrant/collection.py`.
+  - [x] ~~distance metric (cosine)~~ — `Distance.COSINE` al crear colección.
+  - [x] ~~payload schema (documentado)~~ — `app/services/qdrant/payload.py` + `docs/10-database-schema.md`.
+- [x] ~~Upsert:~~
+  - [x] ~~generar `point_id` estable (uuid o compuesto)~~ — UUID del chunk (`stable_qdrant_point_id`).
+  - [x] ~~upsert por chunk con payload completo:~~
+    - [x] ~~`kb_id`, `doc_id`, `chunk_id`~~
+    - [x] ~~`tags`, `source`, `mime_type`, `language`~~
+    - [x] ~~`page_start`, `page_end`, `chunk_index`~~
+    - [x] ~~snippet `text` (opcional)~~ — `QDRANT_SNIPPET_MAX_CHARS`.
+- [x] ~~Delete:~~
+  - [x] ~~borrar por `doc_id` cuando se elimina documento~~ — `delete_document_vectors` en soft delete.
+  - [x] ~~consistencia con soft delete Postgres~~ — filtro `kb_id` + `doc_id`; warning si Qdrant no responde.
+- [x] ~~Tests:~~
+  - [x] ~~upsert + search básico~~ — `tests/test_qdrant_integration.py` (con `TEST_QDRANT_URL`).
+  - [x] ~~filtro por `kb_id`~~ — mismo archivo.
+  - [x] ~~delete por filtro~~ — mismo archivo.
 
 ---
 

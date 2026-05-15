@@ -352,6 +352,7 @@ def delete_document(
     doc_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     doc = get_document_for_kb(db, kb_id=kb_id, doc_id=doc_id)
     if doc is None:
@@ -363,7 +364,13 @@ def delete_document(
                 "details": {},
             },
         )
-    soft_delete_document(db, doc=doc, user=user, ip_address=_client_ip(request))
+    soft_delete_document(
+        db,
+        doc=doc,
+        user=user,
+        ip_address=_client_ip(request),
+        settings=settings,
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

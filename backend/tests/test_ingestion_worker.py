@@ -103,6 +103,7 @@ def ingest_db(
     monkeypatch.setenv("DATABASE_URL", ingest_postgres_url)
     monkeypatch.setenv("ENVIRONMENT", "test")
     monkeypatch.setenv("UPLOAD_STORAGE_DIR", str(upload_root))
+    monkeypatch.setenv("QDRANT_ENABLED", "false")
     clear_settings_cache()
     settings = get_settings()
     engine = create_engine(ingest_postgres_url)
@@ -185,6 +186,7 @@ def test_ingest_success_state_transition(ingest_db: tuple) -> None:
     assert doc.chunks[0].chunk_metadata.get("embedding_dim")
     assert run.metrics.get("embedding_status") == "done"
     assert run.metrics.get("embedding_count", 0) >= 1
+    assert run.metrics.get("qdrant_status") == "skipped"
 
 
 def test_ingest_idempotent_when_ready_with_chunks(ingest_db: tuple) -> None:
