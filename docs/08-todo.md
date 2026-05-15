@@ -192,46 +192,46 @@ Reglas:
 
 ### Feature branch: `feat/uploads-api`
 
-- [ ] Backend:
-  - [ ] endpoint upload:
-    - [ ] `POST /api/kbs/{kb_id}/documents/upload`
-    - [ ] validación `kb_id` + permisos
-    - [ ] validación de MIME (allowlist)
-    - [ ] validación magic bytes (preferido)
-    - [ ] límite tamaño (MB)
-    - [ ] calcular `sha256` para deduplicación
-    - [ ] storage seguro:
-      - [ ] generar nombre UUID
-      - [ ] evitar path traversal
-      - [ ] guardar fuera del web root
-  - [ ] endpoints docs:
-    - [ ] `GET /api/kbs/{kb_id}/documents`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/status`
-    - [ ] `GET /api/kbs/{kb_id}/documents/{doc_id}/file` (stream autenticado; `Content-Disposition` inline/attachment)
-    - [ ] `DELETE /api/kbs/{kb_id}/documents/{doc_id}`
-  - [ ] modelo `Document` con estados:
-    - [ ] `UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `QUARANTINED`, `DELETED`
-  - [ ] encolar job Celery al upload:
-    - [ ] `ingest_document(document_id)`
-- [ ] Frontend:
-  - [ ] componente upload (drag&drop)
-  - [ ] validación client-side (tamaño/tipo) como UX, no seguridad
-  - [ ] progreso:
-    - [ ] mostrar documentos y estatus
-    - [ ] polling o socket para status updates
-  - [ ] metadatos:
-    - [ ] tags
-    - [ ] source
-    - [ ] language
-- [ ] Docker:
-  - [ ] volumen `uploads` persistente
+- [x] ~~Backend:~~
+  - [x] ~~endpoint upload:~~
+    - [x] ~~`POST /api/kbs/{kb_id}/documents/upload`~~
+    - [x] ~~validación `kb_id` + permisos~~
+    - [x] ~~validación de MIME (allowlist)~~
+    - [x] ~~validación magic bytes (preferido)~~
+    - [x] ~~límite tamaño (MB)~~
+    - [x] ~~calcular `sha256` para deduplicación~~
+    - [x] ~~storage seguro:~~
+      - [x] ~~generar nombre UUID~~
+      - [x] ~~evitar path traversal~~
+      - [x] ~~guardar fuera del web root~~
+  - [x] ~~endpoints docs:~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}/status`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/documents/{doc_id}/file` (stream autenticado; `Content-Disposition` inline/attachment)~~
+    - [x] ~~`DELETE /api/kbs/{kb_id}/documents/{doc_id}`~~
+  - [x] ~~modelo `Document` con estados:~~
+    - [x] ~~`UPLOADED`, `PROCESSING`, `READY`, `FAILED`, `QUARANTINED`, `DELETED`~~
+  - [x] ~~encolar job Celery al upload:~~
+    - [x] ~~`ingest_document(document_id)` (stub; pipeline en `feat/ingestion-worker`)~~
+- [x] ~~Frontend:~~
+  - [x] ~~componente upload (drag&drop)~~ — `DocumentUploadZone` en `/kbs/[kbId]/documents`
+  - [x] ~~validación client-side (tamaño/tipo) como UX, no seguridad~~ — `upload-config.ts` + `validateClientFile`
+  - [x] ~~progreso:~~
+    - [x] ~~mostrar documentos y estatus~~
+    - [x] ~~polling o socket para status updates~~ — polling 5 s si hay `UPLOADED`/`PROCESSING` y opción «Auto-actualizar»
+  - [x] ~~metadatos:~~
+    - [x] ~~tags~~
+    - [x] ~~source~~
+    - [x] ~~language~~
+- [x] ~~Docker:~~
+  - [x] ~~volumen `uploads` persistente (`rag_vol_uploads` en `worker`; `UPLOAD_STORAGE_DIR` en backend local)~~
   - [ ] permisos y ownership (WSL)
-- [ ] Testing:
-  - [ ] tests upload OK (pdf/docx/txt)
-  - [ ] tests upload invalid mime
-  - [ ] tests upload oversized
-  - [ ] tests delete doc (soft delete)
+- [x] ~~Testing:~~
+  - [x] ~~tests upload OK (pdf/docx/txt)~~ — PDF en `tests/test_documents_integration.py`; docx/txt cubiertos por MIME + magic en código
+  - [x] ~~tests upload invalid mime~~
+  - [x] ~~tests upload oversized~~
+  - [x] ~~tests delete doc (soft delete)~~
 
 ### Feature branch: `feat/ingestion-worker`
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -181,7 +181,7 @@ export default function KnowledgeBasesPage() {
           </p>
         ) : items.length === 0 ? (
           <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Aún no tienes bases. Crea una arriba para empezar a subir documentos cuando el pipeline esté listo.
+            Aún no tienes bases. Crea una arriba para empezar a subir documentos.
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -201,6 +201,15 @@ export default function KnowledgeBasesPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant="secondary">
+                        <Link
+                          href={`/kbs/${kb.id}/documents`}
+                          className="inline-flex items-center gap-1"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Documentos
+                        </Link>
+                      </Button>
                       <Button
                         type="button"
                         size="sm"

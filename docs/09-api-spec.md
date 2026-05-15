@@ -283,6 +283,8 @@ Sube un documento para ingesta asíncrona.
 }
 ```
 
+`ingestion_job_id`: identificador del encargo asíncrono (p. ej. **task id de Celery**); cuando exista una tabla de jobs de ingesta, puede sustituirse por el UUID del registro.
+
 **Errores**
 
 - `413 UPLOAD_TOO_LARGE`
