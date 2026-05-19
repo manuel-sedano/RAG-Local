@@ -29,6 +29,10 @@ class KbSearchRequest(BaseModel):
         default=None,
         description="Si null, usa RAG_HYBRID_ENABLED del entorno.",
     )
+    rerank: bool | None = Field(
+        default=None,
+        description="Si null, usa RAG_RERANK_ENABLED del entorno.",
+    )
     filters: SearchFiltersBody | None = None
 
 
@@ -40,10 +44,19 @@ class KbSearchItem(BaseModel):
     snippet: str
     vector_score: float | None = None
     bm25_score: float | None = None
+    retrieval_score: float | None = None
+    rerank_score: float | None = None
+
+
+class KbSearchMetrics(BaseModel):
+    rerank_status: str | None = None
+    rerank_latency_ms: float | None = None
+    rerank_backend: str | None = None
 
 
 class KbSearchResponse(BaseModel):
     items: list[KbSearchItem]
+    metrics: KbSearchMetrics | None = None
 
 
 @router.post("/{kb_id}/search", response_model=KbSearchResponse)
@@ -62,7 +75,7 @@ def post_kb_search(
         )
     effective_top_k = body.top_k if body.top_k is not None else min(20, settings.rag_search_max_top_k)
     try:
-        hits = hybrid_search(
+        result = hybrid_search(
             db,
             settings,
             kb_id=kb_id,
@@ -70,6 +83,7 @@ def post_kb_search(
             top_k=effective_top_k,
             filters=filters,
             hybrid=body.hybrid,
+            rerank=body.rerank,
         )
     except ValueError as e:
         raise HTTPException(
@@ -81,6 +95,14 @@ def post_kb_search(
             },
         ) from e
 
+    metrics = None
+    if result.rerank_status is not None:
+        metrics = KbSearchMetrics(
+            rerank_status=result.rerank_status,
+            rerank_latency_ms=result.rerank_latency_ms,
+            rerank_backend=result.rerank_backend,
+        )
+
     return KbSearchResponse(
         items=[
             KbSearchItem(
@@ -91,7 +113,10 @@ def post_kb_search(
                 snippet=h.snippet,
                 vector_score=h.vector_score,
                 bm25_score=h.bm25_score,
+                retrieval_score=h.retrieval_score,
+                rerank_score=h.rerank_score,
             )
-            for h in hits
-        ]
+            for h in result.hits
+        ],
+        metrics=metrics,
     )

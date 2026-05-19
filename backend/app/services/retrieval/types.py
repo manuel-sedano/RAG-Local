@@ -40,3 +40,13 @@ class SearchHit:
     snippet: str
     vector_score: float | None = None
     bm25_score: float | None = None
+    retrieval_score: float | None = None
+    rerank_score: float | None = None
+
+
+@dataclass
+class SearchResult:
+    hits: list[SearchHit]
+    rerank_status: str | None = None
+    rerank_latency_ms: float | None = None
+    rerank_backend: str | None = None

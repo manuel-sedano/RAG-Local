@@ -411,12 +411,12 @@ Reglas:
 
 ### Feature branch: `feat/rerank-flashrank`
 
-- [ ] Integrar FlashRank:
-  - [ ] rerank de top-N a top-M
-  - [ ] métricas de latencia
-  - [ ] fallbacks si reranker falla (usar ranking previo)
-- [ ] Tests:
-  - [ ] rerank no rompe cuando hay pocos candidatos
+- [x] ~~Integrar FlashRank:~~
+  - [x] ~~rerank de top-N a top-M~~ — `rag_rerank_candidate_top_k` → `rag_rerank_top_k` en `rerank.py` + `hybrid_search`.
+  - [x] ~~métricas de latencia~~ — `RerankMetrics` + `metrics` en respuesta `POST /search`.
+  - [x] ~~fallbacks si reranker falla (usar ranking previo)~~ — `status=fallback` conserva orden híbrido.
+- [x] ~~Tests:~~
+  - [x] ~~rerank no rompe cuando hay pocos candidatos~~ — `tests/test_rerank_unit.py`.
 
 ---
 

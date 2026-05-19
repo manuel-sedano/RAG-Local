@@ -186,4 +186,20 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # Swagger: http://localhost:8000/docs → POST /api/kbs/{kb_id}/search
 ```
 
-Variables: `RAG_HYBRID_ENABLED`, `RAG_VECTOR_TOP_K`, `RAG_BM25_TOP_K`, `RAG_RRF_K`, `RAG_SEARCH_MAX_TOP_K`, `RAG_RERANK_TOP_K` (reservado para FlashRank).
+Variables: `RAG_HYBRID_ENABLED`, `RAG_VECTOR_TOP_K`, `RAG_BM25_TOP_K`, `RAG_RRF_K`, `RAG_SEARCH_MAX_TOP_K`, `RAG_RERANK_*`.
+
+### Tests de reranking FlashRank (`test_rerank_unit.py`)
+
+**Unitarios** (backend `fake`, sin descargar modelo):
+
+```bash
+pytest tests/test_rerank_unit.py -v --tb=short
+```
+
+**FlashRank real** (opcional, primera vez descarga el modelo ~4–34 MB):
+
+```bash
+pip install -e ".[rerank]"
+export RAG_RERANK_BACKEND=flashrank
+# pytest o POST /api/kbs/{kb_id}/search con rerank=true en Swagger
+```

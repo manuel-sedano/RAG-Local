@@ -40,6 +40,10 @@ def test_rag_retrieval_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.rag_vector_top_k == 50
     assert s.rag_bm25_top_k == 50
     assert s.rag_rrf_k == 60
+    assert s.rag_rerank_enabled is True
+    assert s.rag_rerank_candidate_top_k == 30
+    assert s.rag_rerank_top_k == 10
+    assert s.resolved_rerank_backend() == "fake"
 
 
 def test_database_url_must_be_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
