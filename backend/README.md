@@ -152,3 +152,54 @@ pytest tests/test_qdrant_integration.py -v --tb=short
 ```
 
 Variables: `QDRANT_HOST`, `QDRANT_PORT`, `QDRANT_COLLECTION`, `QDRANT_ENABLED`, `QDRANT_SNIPPET_MAX_CHARS`. Al borrar un documento (soft delete), se eliminan puntos en Qdrant por filtro `kb_id` + `doc_id`. Payload documentado en `docs/10-database-schema.md`.
+
+### Tests de retrieval híbrido
+
+**Unitarios** (sin Postgres ni Qdrant):
+
+```bash
+cd backend && source .venv/bin/activate && pip install -e ".[dev]"
+pytest tests/test_retrieval_unit.py -v --tb=short
+```
+
+**Integración HTTP** (`POST /api/kbs/{kb_id}/search`):
+
+```bash
+docker compose up -d postgres
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+pytest tests/test_retrieval_integration.py -v --tb=short
+```
+
+Opcional con Qdrant real (búsqueda vectorial en el mismo test):
+
+```bash
+docker compose up -d qdrant
+export TEST_QDRANT_URL="http://127.0.0.1:6333"
+pytest tests/test_retrieval_integration.py -v --tb=short
+```
+
+**Prueba manual (Swagger / curl):** tras login y con documentos en estado `READY`, ingesta habrá refrescado el índice BM25 en memoria del worker/API.
+
+```bash
+# Backend local (desde backend/, con .env y Postgres/Qdrant según docs/04-env-example.md)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Swagger: http://localhost:8000/docs → POST /api/kbs/{kb_id}/search
+```
+
+Variables: `RAG_HYBRID_ENABLED`, `RAG_VECTOR_TOP_K`, `RAG_BM25_TOP_K`, `RAG_RRF_K`, `RAG_SEARCH_MAX_TOP_K`, `RAG_RERANK_*`.
+
+### Tests de reranking FlashRank (`test_rerank_unit.py`)
+
+**Unitarios** (backend `fake`, sin descargar modelo):
+
+```bash
+pytest tests/test_rerank_unit.py -v --tb=short
+```
+
+**FlashRank real** (opcional, primera vez descarga el modelo ~4–34 MB):
+
+```bash
+pip install -e ".[rerank]"
+export RAG_RERANK_BACKEND=flashrank
+# pytest o POST /api/kbs/{kb_id}/search con rerank=true en Swagger
+```

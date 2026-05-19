@@ -24,6 +24,7 @@ from app.services.document_service import absolute_storage_path, resolve_upload_
 from app.services.chunking import chunk_normalized_text, chunking_config_hash, persist_document_chunks
 from app.services.embeddings import EmbeddingError, embed_document_chunks
 from app.services.qdrant import QdrantStoreError, upsert_document_vectors
+from app.services.retrieval import refresh_kb_bm25_index
 from app.services.parsing.artifacts import save_text_artifacts
 from app.services.parsing.errors import ParserError, RecoverableParserError
 from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
@@ -249,9 +250,18 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
     _stage("parse", parse)
     _stage("ocr", ocr)
     _stage("normalize", normalize)
+    def bm25_index() -> None:
+        if not ctx.chunks:
+            metrics["bm25_status"] = "skipped"
+            return
+        count = refresh_kb_bm25_index(session, document.kb_id, settings)
+        metrics["bm25_index_chunks"] = count
+        metrics["bm25_status"] = "done"
+
     _stage("chunk", chunk)
     _stage("embed", embed)
     _stage("qdrant_upsert", qdrant_upsert)
+    _stage("bm25_index", bm25_index)
 
     metrics["document_id"] = str(document.id)
     metrics["kb_id"] = str(document.kb_id)

@@ -202,6 +202,75 @@ class Settings(BaseSettings):
         description="Dimensión del vector fake (solo backend fake / tests).",
     )
 
+    rag_hybrid_enabled: bool = Field(
+        default=True,
+        description="Si true, combina búsqueda vectorial y BM25 con RRF.",
+    )
+    rag_vector_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description="Candidatos vectoriales antes de fusión.",
+    )
+    rag_bm25_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description="Candidatos BM25 antes de fusión.",
+    )
+    rag_rrf_k: int = Field(
+        default=60,
+        ge=1,
+        le=500,
+        description="Constante k de Reciprocal Rank Fusion.",
+    )
+    rag_search_max_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="Tope de resultados devueltos por POST /search.",
+    )
+    rag_rerank_enabled: bool = Field(
+        default=True,
+        description="Si true, reordena candidatos híbridos con FlashRank (o fake en test).",
+    )
+    rag_rerank_candidate_top_k: int = Field(
+        default=30,
+        ge=1,
+        le=100,
+        description="Candidatos tras fusión híbrida que entran al reranker (top-N).",
+    )
+    rag_rerank_top_k: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Resultados finales tras rerank (top-M).",
+    )
+    rag_rerank_backend: Literal["auto", "fake", "flashrank"] = Field(
+        default="auto",
+        description="`auto`: fake en test, flashrank en otros entornos.",
+    )
+    rag_rerank_model_name: str = Field(
+        default="ms-marco-TinyBERT-L-2-v2",
+        description="Modelo FlashRank (cross-encoder).",
+    )
+    rag_rerank_max_length: int = Field(
+        default=256,
+        ge=64,
+        le=512,
+        description="max_length del cross-encoder FlashRank.",
+    )
+    rag_rerank_max_passage_chars: int = Field(
+        default=2000,
+        ge=100,
+        le=8000,
+        description="Recorte de texto del chunk antes de rerank.",
+    )
+    rag_rerank_cache_dir: str = Field(
+        default="",
+        description="Directorio cache de modelos FlashRank (vacío = default de la lib).",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -283,7 +352,19 @@ class Settings(BaseSettings):
                 "fake" if self.environment == "test" else "sentence_transformers"
             )
 
+        if self.rag_rerank_backend == "auto":
+            self.rag_rerank_backend = "fake" if self.environment == "test" else "flashrank"
+
+        if self.rag_rerank_candidate_top_k < self.rag_rerank_top_k:
+            msg = "RAG_RERANK_CANDIDATE_TOP_K debe ser >= RAG_RERANK_TOP_K."
+            raise ValueError(msg)
+
         return self
+
+    def resolved_rerank_backend(self) -> Literal["fake", "flashrank"]:
+        if self.rag_rerank_backend == "fake":
+            return "fake"
+        return "flashrank"
 
     def resolved_embedding_backend(self) -> Literal["fake", "sentence_transformers"]:
         if self.embedding_backend == "fake":
