@@ -20,6 +20,7 @@ from app.models.document import Document
 from app.models.user import User
 from app.services.auth_audit import log_security_event
 from app.services.qdrant import QdrantStoreError, delete_document_vectors
+from app.services.retrieval import refresh_kb_bm25_index
 from app.services.upload_media import extension_for_mime, magic_matches_declared_mime
 
 logger = logging.getLogger(__name__)
@@ -268,6 +269,15 @@ def soft_delete_document(
             "No se pudieron borrar vectores en Qdrant para doc %s: %s",
             doc.id,
             e.message,
+        )
+    try:
+        refresh_kb_bm25_index(db, doc.kb_id, settings)
+    except Exception as e:
+        logger.warning(
+            "No se pudo refrescar índice BM25 para kb %s tras borrar doc %s: %s",
+            doc.kb_id,
+            doc.id,
+            e,
         )
     doc.deleted_at = datetime.now(UTC)
     doc.status = DELETED

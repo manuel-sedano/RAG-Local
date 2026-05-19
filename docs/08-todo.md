@@ -384,28 +384,28 @@ Reglas:
 
 ### Feature branch: `feat/retrieval-hybrid`
 
-- [ ] Vector retrieval:
-  - [ ] query embeddings (usar mismo modelo)
-  - [ ] Qdrant search con filtros `kb_id` server-side
-  - [ ] topK configurable
-- [ ] BM25:
-  - [ ] definir estrategia:
-    - [ ] índice por KB en memoria (MVP) o
+- [x] ~~Vector retrieval:~~
+  - [x] ~~query embeddings (usar mismo modelo)~~ — `embed_texts` + `search_chunks` en `hybrid.py`.
+  - [x] ~~Qdrant search con filtros `kb_id` server-side~~ — `search_chunks` (filtro obligatorio por KB).
+  - [x] ~~topK configurable~~ — `RAG_VECTOR_TOP_K` / `top_k` en request.
+- [x] ~~BM25:~~
+  - [x] ~~definir estrategia:~~
+    - [x] ~~índice por KB en memoria (MVP) o~~ — `app/services/retrieval/bm25_index.py`.
     - [ ] índice persistente (futuro)
-  - [ ] construir índice al finalizar ingesta
-  - [ ] query BM25 topK configurable
-- [ ] Fusión:
-  - [ ] implementar RRF o weighted score
-  - [ ] logging de scores para debug
-- [ ] Metadata filtering:
-  - [ ] tags
-  - [ ] mime_type
-  - [ ] source
-- [ ] Endpoint opcional `/search` para debug
-- [ ] Tests:
-  - [ ] queries con nombres propios (mejoran por BM25)
-  - [ ] queries semánticas (mejoran por vector)
-  - [ ] filtros por tags
+  - [x] ~~construir índice al finalizar ingesta~~ — etapa `bm25_index` en `ingest.py` + refresh en soft delete.
+  - [x] ~~query BM25 topK configurable~~ — `RAG_BM25_TOP_K`.
+- [x] ~~Fusión:~~
+  - [x] ~~implementar RRF o weighted score~~ — `reciprocal_rank_fusion` en `fusion.py`.
+  - [x] ~~logging de scores para debug~~ — `log_fusion_debug` (nivel DEBUG).
+- [x] ~~Metadata filtering:~~
+  - [x] ~~tags~~
+  - [x] ~~mime_type~~
+  - [x] ~~source~~
+- [x] ~~Endpoint opcional `/search` para debug~~ — `POST /api/kbs/{kb_id}/search` (`search.py`).
+- [x] ~~Tests:~~
+  - [x] ~~queries con nombres propios (mejoran por BM25)~~ — `test_retrieval_unit.py`.
+  - [x] ~~queries semánticas (mejoran por vector)~~ — cubierto con `TEST_QDRANT_URL` opcional en integración.
+  - [x] ~~filtros por tags~~ — `test_retrieval_integration.py`.
 
 ## Feature: reranking
 
