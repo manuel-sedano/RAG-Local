@@ -400,7 +400,7 @@ Render Markdown:
 - [ ] Configuración de chunking con hash/versión
 - [ ] Embeddings con batching y límites de concurrencia
 - [ ] Upsert Qdrant con payload completo
-- [ ] Hybrid retrieval (vector + BM25)
+- [x] Hybrid retrieval (vector + BM25) — `feat/retrieval-hybrid`: RRF, BM25 en memoria por KB, `POST /api/kbs/{kb_id}/search`.
 - [ ] Reranking FlashRank
 - [ ] Filtrado por metadatos server-side
 - [ ] Prompt seguro (español + grounding + anti-injection)

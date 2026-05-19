@@ -202,6 +202,41 @@ class Settings(BaseSettings):
         description="Dimensión del vector fake (solo backend fake / tests).",
     )
 
+    rag_hybrid_enabled: bool = Field(
+        default=True,
+        description="Si true, combina búsqueda vectorial y BM25 con RRF.",
+    )
+    rag_vector_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description="Candidatos vectoriales antes de fusión.",
+    )
+    rag_bm25_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description="Candidatos BM25 antes de fusión.",
+    )
+    rag_rrf_k: int = Field(
+        default=60,
+        ge=1,
+        le=500,
+        description="Constante k de Reciprocal Rank Fusion.",
+    )
+    rag_search_max_top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="Tope de resultados devueltos por POST /search.",
+    )
+    rag_rerank_top_k: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Reservado para reranking (FlashRank); no usado aún en híbrido.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
