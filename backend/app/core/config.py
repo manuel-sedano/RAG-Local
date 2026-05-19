@@ -78,6 +78,48 @@ class Settings(BaseSettings):
 
     ollama_host: str = Field(default="ollama")
     ollama_port: int = Field(default=11434)
+    ollama_timeout_seconds: float = Field(
+        default=120.0,
+        ge=5.0,
+        description="Timeout HTTP por petición a Ollama (chat/generate).",
+    )
+    ollama_max_retries: int = Field(
+        default=2,
+        ge=0,
+        le=5,
+        description="Reintentos ante errores transitorios de red/5xx.",
+    )
+
+    llm_model: str = Field(
+        default="qwen2.5:7b-instruct",
+        description="Modelo Ollama (tag en `ollama pull`).",
+    )
+    llm_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    llm_max_tokens: int = Field(default=800, ge=64, le=8192)
+    llm_streaming: bool = Field(
+        default=True,
+        description="Preferencia global; POST /messages con stream=false ignora esto.",
+    )
+    llm_force_spanish: bool = Field(
+        default=True,
+        description="System prompt exige respuestas en español.",
+    )
+    chat_llm_backend: Literal["auto", "fake", "ollama"] = Field(
+        default="auto",
+        description="`auto`: fake en test, ollama en otros entornos.",
+    )
+    chat_default_top_k: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="top_k RAG por defecto si el cliente no envía rag.top_k.",
+    )
+    chat_context_max_chars: int = Field(
+        default=12_000,
+        ge=500,
+        le=100_000,
+        description="Tope de caracteres del bloque de contexto en el prompt.",
+    )
 
     health_http_timeout_seconds: float = Field(default=3.0)
 
@@ -355,6 +397,9 @@ class Settings(BaseSettings):
         if self.rag_rerank_backend == "auto":
             self.rag_rerank_backend = "fake" if self.environment == "test" else "flashrank"
 
+        if self.chat_llm_backend == "auto":
+            self.chat_llm_backend = "fake" if self.environment == "test" else "ollama"
+
         if self.rag_rerank_candidate_top_k < self.rag_rerank_top_k:
             msg = "RAG_RERANK_CANDIDATE_TOP_K debe ser >= RAG_RERANK_TOP_K."
             raise ValueError(msg)
@@ -370,6 +415,11 @@ class Settings(BaseSettings):
         if self.embedding_backend == "fake":
             return "fake"
         return "sentence_transformers"
+
+    def resolved_chat_llm_backend(self) -> Literal["fake", "ollama"]:
+        if self.chat_llm_backend == "fake":
+            return "fake"
+        return "ollama"
 
 
 def _looks_like_sqlalchemy_postgres(url: str) -> bool:
