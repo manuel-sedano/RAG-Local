@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.chats import router as chats_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.health import router as health_router
 from app.api.routes.kbs import router as kbs_router
-from app.api.routes.search import router as search_router
 from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
@@ -87,7 +87,7 @@ def create_app() -> FastAPI:
     application.include_router(health_router, prefix="/api")
     application.include_router(auth_router, prefix="/api")
     application.include_router(kbs_router, prefix="/api")
-    application.include_router(search_router, prefix="/api")
+    application.include_router(chats_router, prefix="/api")
     application.include_router(documents_router, prefix="/api")
 
     @application.get("/")

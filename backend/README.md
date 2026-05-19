@@ -203,3 +203,30 @@ pip install -e ".[rerank]"
 export RAG_RERANK_BACKEND=flashrank
 # pytest o POST /api/kbs/{kb_id}/search con rerank=true en Swagger
 ```
+
+### Tests de chats (`test_chat_paths.py`, `test_chat_integration.py`)
+
+**Unitarios** (rutas de citas, sin Postgres):
+
+```bash
+pytest tests/test_chat_paths.py -v --tb=short
+```
+
+**Integración HTTP** (CRUD + autorización por KB + historial con citas):
+
+```bash
+docker compose up -d postgres
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+pytest tests/test_chat_integration.py -v --tb=short
+# o desde la raíz del repo:
+bash scripts/test-chat.sh
+```
+
+**Prueba manual (Swagger):** tras login, crea una KB y usa `POST /api/kbs/{kb_id}/chats`, luego lista y abre mensajes. No hace falta variable de entorno nueva: los modelos ya están en la migración inicial.
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Swagger: http://localhost:8000/docs → sección «chats»
+```
+
+El envío de mensajes con generación RAG (`POST .../messages`) llegará en la rama `feat/chat-rag-generation`.

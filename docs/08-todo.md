@@ -426,14 +426,14 @@ Reglas:
 
 ### Feature branch: `feat/chat-models`
 
-- [ ] DB:
-  - [ ] modelos `chats`, `chat_messages`, `message_citations`
-  - [ ] endpoints:
-    - [ ] `POST /api/kbs/{kb_id}/chats`
-    - [ ] `GET /api/kbs/{kb_id}/chats`
-    - [ ] `GET /api/kbs/{kb_id}/chats/{chat_id}`
-    - [ ] `GET /api/kbs/{kb_id}/chats/{chat_id}/messages`
-- [ ] Tests CRUD chat y autorización por KB
+- [x] ~~DB:~~
+  - [x] ~~modelos `chats`, `chat_messages`, `message_citations`~~ — ORM en `app/models/chat.py` + migración inicial.
+  - [x] ~~endpoints:~~
+    - [x] ~~`POST /api/kbs/{kb_id}/chats`~~ — `app/api/routes/chats.py`.
+    - [x] ~~`GET /api/kbs/{kb_id}/chats`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/chats/{chat_id}`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/chats/{chat_id}/messages`~~ — citas con `viewer_path` / `file_path` derivados en servidor.
+- [x] ~~Tests CRUD chat y autorización por KB~~ — `tests/test_chat_integration.py`, `tests/test_chat_paths.py`, `scripts/test-chat.sh`.
 
 ### Feature branch: `feat/chat-rag-generation`
 
