@@ -112,6 +112,8 @@ services:
     image: ollama/ollama:latest
     container_name: rag_ollama
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
     networks:
       - rag_net
     volumes:

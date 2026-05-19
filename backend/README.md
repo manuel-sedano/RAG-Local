@@ -229,4 +229,29 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # Swagger: http://localhost:8000/docs → sección «chats»
 ```
 
-El envío de mensajes con generación RAG (`POST .../messages`) llegará en la rama `feat/chat-rag-generation`.
+### Tests de generación RAG en chat (`test_chat_prompting_unit.py`, `test_chat_generation_integration.py`)
+
+En `ENVIRONMENT=test` el LLM es **fake** (sin Ollama). Retrieval usa BM25 en memoria; Qdrant opcional.
+
+```bash
+docker compose up -d postgres
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+export QDRANT_ENABLED=false
+pytest tests/test_chat_prompting_unit.py tests/test_chat_generation_integration.py -v --tb=short
+# o desde la raíz:
+bash scripts/test-chat-rag.sh
+```
+
+**Prueba manual con Ollama real (Docker):**
+
+```bash
+docker compose up -d postgres ollama
+docker compose exec ollama ollama pull qwen2.5:7b-instruct
+# En backend/.env: OLLAMA_HOST=127.0.0.1 si uvicorn en host; OLLAMA_HOST=ollama si API en compose
+export CHAT_LLM_BACKEND=ollama
+export LLM_MODEL=qwen2.5:7b-instruct
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
+# Swagger: POST /api/kbs/{kb_id}/chats/{chat_id}/messages con stream=false
+```
+
+Variables: `LLM_MODEL`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `CHAT_LLM_BACKEND`, `CHAT_DEFAULT_TOP_K`, `OLLAMA_HOST`, `OLLAMA_PORT`, `OLLAMA_TIMEOUT_SECONDS`.

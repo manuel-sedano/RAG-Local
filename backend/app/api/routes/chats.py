@@ -6,19 +6,24 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_kb_access
-from app.models.chat import Chat, ChatMessage
+from app.core.config import Settings, get_settings
+from app.models.chat import Chat, ChatMessage, MessageCitation
 from app.models.user import User
+from app.services.chat import RagRequestConfig, generate_chat_reply
 from app.services.chat_paths import build_file_path, build_viewer_path
 from app.services.chat_service import (
     create_chat,
     get_chat_for_kb,
     list_chats_for_kb,
     list_messages_for_chat,
+    touch_chat_updated_at,
 )
+from app.services.retrieval import SearchFilters
 
 router = APIRouter(prefix="/kbs/{kb_id}/chats", tags=["chats"])
 
@@ -89,6 +94,46 @@ class MessageListResponse(BaseModel):
     items: list[MessageItemResponse]
 
 
+class RagConfigBody(BaseModel):
+    top_k: int | None = Field(default=None, ge=1, le=50)
+    rerank_top_k: int | None = Field(default=None, ge=1, le=50)
+    hybrid: bool | None = None
+    filters: dict[str, Any] | None = None
+
+
+class PostMessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=32_768)
+    stream: bool = False
+    rag: RagConfigBody | None = None
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            raise ValueError("El mensaje no puede quedar vacío.")
+        return s
+
+
+class MessageUsageResponse(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+
+
+class PostMessageResponse(BaseModel):
+    message_id: uuid.UUID
+    role: str
+    content: str
+    citations: list[CitationResponse]
+    usage: MessageUsageResponse | None = None
+
+
+class PostMessageStreamResponse(BaseModel):
+    message_id: uuid.UUID
+    status: str
+    socket: dict[str, str]
+
+
 def _chat_not_found() -> HTTPException:
     return HTTPException(
         status.HTTP_404_NOT_FOUND,
@@ -133,6 +178,35 @@ def _citation_to_response(kb_id: uuid.UUID, citation: Any) -> CitationResponse:
         viewer_path=build_viewer_path(kb_id, citation.document_id, page_start=citation.page_start),
         file_path=build_file_path(kb_id, citation.document_id),
     )
+
+
+def _rag_config_from_body(body: RagConfigBody | None) -> RagRequestConfig | None:
+    if body is None:
+        return None
+    filters = None
+    if body.filters:
+        tags = body.filters.get("tags") or []
+        mime_types = body.filters.get("mime_types") or body.filters.get("mime_type")
+        if isinstance(mime_types, str):
+            mime_types = [mime_types]
+        filters = SearchFilters(
+            tags=list(tags) if tags else [],
+            mime_types=list(mime_types) if mime_types else [],
+            source=body.filters.get("source"),
+        )
+    return RagRequestConfig(
+        top_k=body.top_k,
+        rerank_top_k=body.rerank_top_k,
+        hybrid=body.hybrid,
+        filters=filters,
+    )
+
+
+def _citations_for_message(
+    kb_id: uuid.UUID,
+    citations: list[MessageCitation],
+) -> list[CitationResponse]:
+    return [_citation_to_response(kb_id, c) for c in citations]
 
 
 def _message_to_item(kb_id: uuid.UUID, msg: ChatMessage) -> MessageItemResponse:
@@ -195,3 +269,76 @@ def get_chat_messages(
         raise _chat_not_found()
     messages = list_messages_for_chat(db, chat_id)
     return MessageListResponse(items=[_message_to_item(kb_id, m) for m in messages])
+
+
+@router.post(
+    "/{chat_id}/messages",
+    responses={
+        200: {"model": PostMessageResponse},
+        202: {"model": PostMessageStreamResponse},
+    },
+)
+def post_chat_message(
+    kb_id: Annotated[uuid.UUID, Depends(require_kb_access("viewer"))],
+    chat_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    body: PostMessageRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PostMessageResponse:
+    _ = user
+    chat = get_chat_for_kb(db, kb_id=kb_id, chat_id=chat_id)
+    if chat is None:
+        raise _chat_not_found()
+
+    if body.stream:
+        user_msg = ChatMessage(chat_id=chat.id, role="user", content=body.content)
+        db.add(user_msg)
+        db.flush()
+        touch_chat_updated_at(db, chat)
+        payload = PostMessageStreamResponse(
+            message_id=user_msg.id,
+            status="STREAMING",
+            socket={
+                "namespace": "/chat",
+                "room": f"chat:{chat_id}",
+            },
+        )
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content=payload.model_dump(mode="json"),
+        )
+
+    rag_cfg = _rag_config_from_body(body.rag)
+    try:
+        result = generate_chat_reply(
+            db,
+            settings,
+            chat=chat,
+            user_content=body.content,
+            rag=rag_cfg,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": str(e),
+                "details": {},
+            },
+        ) from e
+
+    usage_resp = None
+    if result.usage:
+        usage_resp = MessageUsageResponse(
+            prompt_tokens=result.usage.get("prompt_tokens", 0),
+            completion_tokens=result.usage.get("completion_tokens", 0),
+        )
+
+    return PostMessageResponse(
+        message_id=result.assistant_message.id,
+        role="assistant",
+        content=result.assistant_message.content,
+        citations=_citations_for_message(kb_id, result.citations),
+        usage=usage_resp,
+    )
