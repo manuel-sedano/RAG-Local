@@ -11,8 +11,8 @@ fi
 
 pip install -q -e ".[dev]"
 
-echo "== Unitarios retrieval =="
-pytest tests/test_retrieval_unit.py -v --tb=short
+echo "== Unitarios retrieval + rerank =="
+pytest tests/test_retrieval_unit.py tests/test_rerank_unit.py -v --tb=short
 
 if [[ -n "${TEST_DATABASE_URL:-}" ]]; then
   echo "== Integración retrieval (TEST_DATABASE_URL definido) =="

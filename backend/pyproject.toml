@@ -36,6 +36,9 @@ dependencies = [
 embeddings = [
   "sentence-transformers>=3.0",
 ]
+rerank = [
+  "flashrank>=0.2.10",
+]
 dev = [
   "black>=24.10",
   "isort>=5.13",

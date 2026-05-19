@@ -160,10 +160,13 @@ def test_search_bm25_viaticos(retrieval_client) -> None:
         },
     )
     assert resp.status_code == 200
-    items = resp.json()["items"]
+    body = resp.json()
+    items = body["items"]
     assert items
     assert items[0]["chunk_id"] == str(chunk_id)
     assert "viáticos" in items[0]["snippet"].lower() or "viaticos" in items[0]["snippet"].lower()
+    assert body.get("metrics") is not None
+    assert body["metrics"]["rerank_backend"] == "fake"
 
 
 def test_search_filter_tags(retrieval_client) -> None:

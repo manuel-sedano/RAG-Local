@@ -394,6 +394,7 @@ Devuelve candidatos con score y metadatos (útil para depuración).
 {
   "query": "¿Cuál es la política de viáticos?",
   "top_k": 20,
+  "rerank": true,
   "filters": {
     "tags": ["finanzas", "viaticos"],
     "mime_types": ["application/pdf"]
@@ -411,9 +412,16 @@ Devuelve candidatos con score y metadatos (útil para depuración).
       "doc_id": "uuid",
       "score": 0.8123,
       "page": 3,
-      "snippet": "La política de viáticos establece que..."
+      "snippet": "La política de viáticos establece que...",
+      "retrieval_score": 0.0412,
+      "rerank_score": 0.8123
     }
-  ]
+  ],
+  "metrics": {
+    "rerank_status": "done",
+    "rerank_latency_ms": 42.5,
+    "rerank_backend": "flashrank"
+  }
 }
 ```
 

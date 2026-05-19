@@ -401,7 +401,7 @@ Render Markdown:
 - [ ] Embeddings con batching y límites de concurrencia
 - [ ] Upsert Qdrant con payload completo
 - [x] Hybrid retrieval (vector + BM25) — `feat/retrieval-hybrid`: RRF, BM25 en memoria por KB, `POST /api/kbs/{kb_id}/search`.
-- [ ] Reranking FlashRank
+- [x] Reranking FlashRank — `feat/rerank-flashrank`: FlashRank opcional (`pip install -e '.[rerank]'`), fake en `ENVIRONMENT=test`.
 - [ ] Filtrado por metadatos server-side
 - [ ] Prompt seguro (español + grounding + anti-injection)
 - [ ] Streaming y persistencia de chat + citas
