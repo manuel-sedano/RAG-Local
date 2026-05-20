@@ -16,9 +16,28 @@ from __future__ import annotations
 import os
 import subprocess
 import time
+from pathlib import Path
 
 import httpx
 import pytest
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _read_dotenv(key: str) -> str:
+    for path in (_REPO_ROOT / ".env", _REPO_ROOT / "backend" / ".env"):
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith(f"{key}="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+def _effective_waf_mode() -> str:
+    return os.environ.get("WAF_MODE", "").strip() or _read_dotenv("WAF_MODE") or "DetectionOnly"
+
 
 def _waf_base_url() -> str:
     explicit = os.environ.get("TEST_WAF_BASE_URL", "").strip()
@@ -38,7 +57,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 BASE = _waf_base_url() or "http://localhost"
-WAF_MODE = os.environ.get("WAF_MODE", "DetectionOnly").strip()
 
 
 @pytest.fixture
@@ -89,13 +107,17 @@ def _waf_container_rule_engine() -> str | None:
 
 
 def test_sqli_query_blocked_when_waf_mode_on(client: httpx.Client) -> None:
-    if WAF_MODE != "On":
-        pytest.skip("Solo aplica con WAF_MODE=On (bloqueo CRS).")
     engine = _waf_container_rule_engine()
+    env_mode = _effective_waf_mode()
     if engine != "On":
+        if env_mode != "On":
+            pytest.skip(
+                "Solo aplica con WAF_MODE=On en .env o contenedor en modo bloqueo. "
+                "Desde la raíz: ./scripts/recreate-waf.sh"
+            )
         pytest.skip(
             f"Contenedor rag_waf en MODSEC_RULE_ENGINE={engine!r}. "
-            "Desde la raíz del repo: WAF_MODE=On ./scripts/recreate-waf.sh"
+            "Ejecuta: ./scripts/docker-rag-clean.sh && WAF_MODE=On ./scripts/recreate-waf.sh"
         )
     # Misma sonda que scripts/test-waf.sh (dispara CRS 942100 en logs)
     response = client.get("/api/health", params={"id": "1' OR 1=1--"})

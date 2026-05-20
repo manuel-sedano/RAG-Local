@@ -135,8 +135,12 @@ O: `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`
 **Bloqueo 403:** desde la **raíz del repo** (no desde `backend/`):
 
 ```bash
+./scripts/docker-rag-clean.sh   # si hay conflictos rag_backend / rag_worker
+./scripts/sync-env-security.sh  # WAF_MODE=On en .env y backend/.env
 WAF_MODE=On ./scripts/recreate-waf.sh
-pytest tests/test_waf_integration.py::test_sqli_query_blocked_when_waf_mode_on -v
+cd backend && source .venv/bin/activate
+export TEST_WAF_BASE_URL=http://localhost
+pytest tests/test_waf_integration.py -v
 ```
 
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)

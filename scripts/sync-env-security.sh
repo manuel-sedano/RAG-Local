@@ -38,4 +38,20 @@ upsert CLAMAV_TIMEOUT_SECONDS "120"
 upsert CLAMAV_FAIL_OPEN "false"
 upsert CLAMAV_ALLOW_EICAR_TEST "true"
 
-echo "OK: .env actualizado (WAF_MODE=On, CLAMAV_*, WAF_IMAGE)."
+# backend/.env (uvicorn local): mismas vars de seguridad para tests
+BACKEND_ENV="${ROOT}/backend/.env"
+if [[ -f "${BACKEND_ENV}" ]]; then
+  for key in WAF_MODE CLAMAV_ENABLED CLAMAV_HOST CLAMAV_PORT CLAMAV_ALLOW_EICAR_TEST; do
+    val="$(grep "^${key}=" "${ENV_FILE}" | cut -d= -f2- || true)"
+    if [[ -n "${val}" ]]; then
+      if grep -q "^${key}=" "${BACKEND_ENV}" 2>/dev/null; then
+        sed -i "s|^${key}=.*|${key}=${val}|" "${BACKEND_ENV}"
+      else
+        printf '%s=%s\n' "${key}" "${val}" >> "${BACKEND_ENV}"
+      fi
+    fi
+  done
+  echo "OK: backend/.env alineado (WAF_MODE, CLAMAV_*)."
+fi
+
+echo "OK: .env actualizado (WAF_MODE=On, CLAMAV_*, WAF_IMAGE, COMPOSE_PROJECT_NAME=rag)."

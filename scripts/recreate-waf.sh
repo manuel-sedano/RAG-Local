@@ -4,14 +4,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.waf.yml)
-
 if [[ -f .env ]]; then
   set -a
   # shellcheck disable=SC1091
   source .env
   set +a
 fi
+
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-rag}"
+bash "${ROOT}/scripts/docker-rag-clean.sh" 2>/dev/null || true
+
+COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.waf.yml)
 
 WAF_MODE="${WAF_MODE:-DetectionOnly}"
 export WAF_MODE

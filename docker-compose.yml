@@ -221,7 +221,7 @@ services:
 networks:
   rag_net:
     name: rag_net
-    driver: bridge
+    external: true
 
 volumes:
   rag_vol_postgres:
