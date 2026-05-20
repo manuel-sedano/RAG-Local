@@ -12,10 +12,16 @@ services:
     volumes:
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+      - rag_vol_traefik_logs:/var/log/traefik
     networks:
       - rag_net
-    command:
-      - --configFile=/etc/traefik/traefik.yml
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /var/log/traefik
+        touch /var/log/traefik/access.log
+        exec traefik --configFile=/etc/traefik/traefik.yml
 
   frontend:
     build:
@@ -224,6 +230,8 @@ networks:
     external: true
 
 volumes:
+  rag_vol_traefik_logs:
+  rag_vol_fail2ban:
   rag_vol_postgres:
   rag_vol_qdrant:
   rag_vol_ollama:

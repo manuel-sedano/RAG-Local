@@ -190,7 +190,7 @@ Capas:
 
 - rate limit login
 - lockout por usuario (p. ej. 10 intentos → cooldown)
-- Fail2ban leyendo logs (si se configura)
+- Fail2ban (`feat/security-fail2ban`): jails `traefik-auth` / `traefik-forbidden` sobre `access.log`; `banaction=dummy` en WSL2, iptables en Linux host (ver `docs/17-fail2ban.md`)
 
 ---
 

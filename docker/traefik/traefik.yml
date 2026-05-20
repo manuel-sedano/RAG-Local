@@ -26,3 +26,12 @@ metrics:
     addEntryPointsLabels: true
     addRoutersLabels: true
     addServicesLabels: true
+
+# Logs de acceso para Fail2ban (perfil `fail2ban`): solo códigos 4xx/5xx en volumen compartido.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: common
+  filters:
+    statusCodes:
+      - "400-499"
+      - "500-599"
