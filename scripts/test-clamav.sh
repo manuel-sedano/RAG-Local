@@ -38,6 +38,9 @@ elif [ -f ../venv/bin/activate ]; then
   echo "AVISO: usa backend/.venv (pip install -e '.[dev]'). El venv de la raíz no incluye pydantic." >&2
   exit 1
 fi
-pytest -q tests/test_clamav_integration.py
+if ! pytest -q tests/test_clamav_integration.py; then
+  echo "ERROR: pytest ClamAV falló. ¿Puerto 3310 expuesto? docker compose --profile clamav up -d --force-recreate clamav" >&2
+  exit 1
+fi
 
 echo "OK: ClamAV responde y detecta EICAR."

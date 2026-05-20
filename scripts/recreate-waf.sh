@@ -24,3 +24,7 @@ echo "== Sonda SQLi =="
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
   'http://localhost/api/health?id=1%27%20OR%201%3D1--' || true)
 echo "HTTP ${CODE} (esperado 403 si WAF_MODE=On)"
+if [[ "${WAF_MODE}" == "On" && "${CODE}" != "403" ]]; then
+  echo "ERROR: WAF_MODE=On pero no hubo 403. Revisa .env y logs: docker logs rag_waf | tail -20" >&2
+  exit 1
+fi

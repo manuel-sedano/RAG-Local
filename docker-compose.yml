@@ -125,10 +125,18 @@ services:
     profiles:
       - clamav
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3310:3310"
     networks:
       - rag_net
     volumes:
       - rag_vol_clamav:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 300s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:v2.52.0
