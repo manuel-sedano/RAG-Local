@@ -20,6 +20,7 @@ from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
 from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.rate_limit_middleware import UserRateLimitMiddleware
 from app.db.session import get_engine
 from app.realtime.server import create_socketio_server
 
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
     register_error_handlers(application)
 
     application.add_middleware(RequestIdMiddleware)
+    application.add_middleware(UserRateLimitMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,

@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
 
 from app.core.config import Settings
+from app.services.rate_limit import minute_bucket, raise_rate_limited
 
 if TYPE_CHECKING:
     from redis import Redis
-
-
-def _minute_bucket() -> str:
-    return datetime.now(UTC).strftime("%Y%m%d%H%M")
 
 
 def _ip_key(ip: str, bucket: str) -> str:
@@ -43,7 +39,7 @@ def check_login_rate_limits(
     """Lanza 429 si se superan límites por IP o email (ventana ~1 min)."""
     if redis_client is None:
         return
-    bucket = _minute_bucket()
+    bucket = minute_bucket()
     ip_k = _ip_key(ip, bucket)
     em_k = _email_key(email_normalized, bucket)
     pipe = redis_client.pipeline()
@@ -53,22 +49,14 @@ def check_login_rate_limits(
     pipe.expire(em_k, 70)
     c_ip, _, c_email, _ = pipe.execute()
     if c_ip > settings.auth_login_max_attempts_per_ip_per_minute:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "code": "RATE_LIMITED",
-                "message": "Demasiados intentos de inicio de sesión desde esta IP.",
-                "details": {"window": "per_minute", "scope": "ip"},
-            },
+        raise_rate_limited(
+            message="Demasiados intentos de inicio de sesión desde esta IP.",
+            scope="ip",
         )
     if c_email > settings.auth_login_max_attempts_per_email_per_minute:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "code": "RATE_LIMITED",
-                "message": "Demasiados intentos de inicio de sesión para este correo.",
-                "details": {"window": "per_minute", "scope": "email"},
-            },
+        raise_rate_limited(
+            message="Demasiados intentos de inicio de sesión para este correo.",
+            scope="email",
         )
 
 
@@ -81,19 +69,15 @@ def check_refresh_rate_limit(
     """Limita refrescos por IP (ventana ~1 min), misma cuota que login por IP."""
     if redis_client is None:
         return
-    bucket = _minute_bucket()
+    bucket = minute_bucket()
     key = f"auth:rl:refresh:ip:{ip}:{bucket}"
     n = int(redis_client.incr(key, 1))
     if n == 1:
         redis_client.expire(key, 70)
     if n > settings.auth_login_max_attempts_per_ip_per_minute:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "code": "RATE_LIMITED",
-                "message": "Demasiados intentos de renovación de token.",
-                "details": {"window": "per_minute", "scope": "ip"},
-            },
+        raise_rate_limited(
+            message="Demasiados intentos de renovación de token.",
+            scope="ip",
         )
 
 

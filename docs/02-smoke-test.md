@@ -169,14 +169,49 @@ docker compose --profile observability up -d
 
 ---
 
-## 8. Seguridad local
+## 8. Rate limits (Traefik + backend)
+
+**Importante:** los scripts viven en `scripts/` en la **raíz del repo**, no dentro de `backend/`. Desde `backend/` puedes usar los wrappers `backend/scripts/*.sh`.
+
+Con el backend real (no placeholder) y Redis activo:
+
+```bash
+cd ~/projects/rag-local
+bash scripts/sync-env-security.sh
+docker compose up -d postgres redis traefik backend
+bash scripts/test-rate-limits.sh
+```
+
+Pruebas automáticas (Postgres debe estar arriba **antes** de pytest):
+
+```bash
+cd ~/projects/rag-local
+docker compose up -d postgres redis
+source scripts/ensure-test-infra.sh   # crea rag + rag_test; exporta TEST_DATABASE_URL
+cd backend && source .venv/bin/activate
+pytest -q tests/test_rate_limit_unit.py tests/test_rate_limit_integration.py
+```
+
+Si ves `database "rag" does not exist`, el script actualizado crea `rag` y `rag_test` conectando a la base admin `postgres`.
+
+O todo en uno con smoke + pytest:
+
+```bash
+RUN_RATE_LIMIT_PYTEST=1 bash scripts/test-rate-limits.sh
+```
+
+Traefik aplica `rag-ratelimit-login` (~10/min) y `rag-ratelimit-api` (~200/min) en `docker/traefik/dynamic/bootstrap.yml`.
+
+---
+
+## 9. Seguridad local
 
 - Cambia `POSTGRES_PASSWORD` y credenciales de Grafana antes de exponer la máquina a una red no confiable (p. ej. vía variables de entorno y override de Compose en una fase posterior).
 - No subas `.env` al repositorio (ya ignorado en `.gitignore`).
 
 ---
 
-## 9. Parada
+## 10. Parada
 
 ```bash
 docker compose down

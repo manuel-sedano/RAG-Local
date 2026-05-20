@@ -519,16 +519,16 @@ Reglas:
 
 ### Feature branch: `feat/security-rate-limits`
 
-- [ ] Traefik:
-  - [ ] middleware rate limit por IP
-  - [ ] policy específica `/api/auth/login`
-- [ ] Backend:
-  - [ ] rate limit por usuario (Redis)
-  - [ ] quotas para ingesta (docs/min)
-- [ ] Auditoría:
-  - [ ] persistir `rate_limit_events`
-- [ ] Tests:
-  - [ ] rebasar límite → 429
+- [x] ~~Traefik:~~
+  - [x] ~~middleware rate limit por IP~~ — `rag-ratelimit-api` (200/min) en `bootstrap.yml` / `bootstrap-waf.yml`.
+  - [x] ~~policy específica `/api/auth/login`~~ — router `rag-auth-login` + `rag-ratelimit-login` (10/min).
+- [x] ~~Backend:~~
+  - [x] ~~rate limit por usuario (Redis)~~ — `UserRateLimitMiddleware` + `APP_RATE_LIMIT_*`.
+  - [x] ~~quotas para ingesta (docs/min)~~ — `check_ingest_upload_quota` en upload (`INGEST_UPLOAD_MAX_*`).
+- [x] ~~Auditoría:~~
+  - [x] ~~persistir `rate_limit_events`~~ — `rate_limit_audit.py` + middleware/rutas auth/upload.
+- [x] ~~Tests:~~
+  - [x] ~~rebasar límite → 429~~ — `tests/test_rate_limit_unit.py`, `tests/test_rate_limit_integration.py`, `scripts/test-rate-limits.sh`.
 
 ## Feature: Fail2ban
 

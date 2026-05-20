@@ -50,6 +50,26 @@ class Settings(BaseSettings):
     auth_lockout_base_seconds: int = Field(default=60, ge=1)
     auth_lockout_max_seconds: int = Field(default=3600, ge=1)
 
+    app_rate_limit_enabled: bool = Field(
+        default=True,
+        description="Rate limit global por usuario autenticado (Redis).",
+    )
+    app_rate_limit_per_minute: int = Field(default=120, ge=1)
+    ingest_upload_max_per_user_per_minute: int = Field(
+        default=10,
+        ge=1,
+        description="Máximo de subidas de documentos por usuario por minuto.",
+    )
+    ingest_upload_max_per_kb_per_minute: int = Field(
+        default=20,
+        ge=1,
+        description="Máximo de subidas por KB por minuto (todos los usuarios).",
+    )
+    rate_limit_audit_enabled: bool = Field(
+        default=True,
+        description="Persistir filas en rate_limit_events al devolver 429.",
+    )
+
     database_url: str = Field(
         default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
         repr=False,

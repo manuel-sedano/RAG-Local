@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, require_kb_access
+from app.api.deps import get_current_user, get_db, get_redis, require_kb_access
 from app.core.config import Settings, get_settings
 from app.models.user import User
 from app.services.document_service import (
@@ -38,6 +38,8 @@ from app.services.document_service import (
     soft_delete_document,
     status_payload,
 )
+from app.services.rate_limit import check_ingest_upload_quota
+from app.services.rate_limit_http import record_http_rate_limit_if_429
 from app.tasks.ingest import ingest_document
 
 router = APIRouter(prefix="/kbs/{kb_id}/documents", tags=["documents"])
@@ -120,6 +122,27 @@ async def upload_document(
                 "details": {},
             },
         )
+
+    redis_client = get_redis(request)
+    ip = _client_ip(request)
+    try:
+        check_ingest_upload_quota(
+            redis_client,
+            settings=settings,
+            user_id=str(user.id),
+            kb_id=str(kb_id),
+        )
+    except HTTPException as exc:
+        record_http_rate_limit_if_429(
+            exc,
+            db,
+            settings=settings,
+            user_id=user.id,
+            ip_address=ip,
+            endpoint=f"/api/kbs/{kb_id}/documents/upload",
+            method="POST",
+        )
+        raise
 
     canonical = next(
         (m for m in settings.allowed_mime_type_list if m.lower() == declared),
