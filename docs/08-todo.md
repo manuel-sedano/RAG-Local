@@ -457,25 +457,25 @@ Reglas:
 
 ### Feature branch: `feat/chat-streaming-socketio`
 
-- [ ] Backend:
-  - [ ] Socket.IO namespace `/chat`
-  - [ ] auth handshake con JWT
-  - [ ] rooms por `chat_id`
-  - [ ] eventos:
-    - [ ] `chat:join`
-    - [ ] `chat:token`
-    - [ ] `chat:citation`
-    - [ ] `chat:done`
-    - [ ] `ingest:progress`
-- [ ] Frontend:
-  - [ ] cliente Socket.IO
-  - [ ] UI streaming (render incremental)
-  - [ ] reconexión y manejo de errores
-- [ ] Proxy:
-  - [ ] Traefik enruta `/socket.io`
-- [ ] Tests:
-  - [ ] test de conexión auth
-  - [ ] test de streaming básico (manual)
+- [x] ~~Backend:~~
+  - [x] ~~Socket.IO namespace `/chat`~~ — `app/realtime/` + `asgi_application` en `main.py`.
+  - [x] ~~auth handshake con JWT~~ — `app/realtime/auth.py` (auth payload o `?token=`).
+  - [x] ~~rooms por `chat_id`~~ — `chat:join` → room `chat:{chat_id}`.
+  - [x] ~~eventos:~~
+    - [x] ~~`chat:join`~~
+    - [x] ~~`chat:token`~~
+    - [x] ~~`chat:citation`~~
+    - [x] ~~`chat:done`~~
+    - [x] ~~`ingest:progress`~~ — `ingest:join` + `emit_ingest_progress`.
+- [x] ~~Frontend:~~
+  - [x] ~~cliente Socket.IO~~ — `frontend/src/lib/socket-client.ts`.
+  - [x] ~~UI streaming (render incremental)~~ — `frontend/src/app/kbs/[kbId]/chats/[chatId]/page.tsx`.
+  - [x] ~~reconexión y manejo de errores~~ — opciones `reconnection` en cliente.
+- [x] ~~Proxy:~~
+  - [x] ~~Traefik enruta `/socket.io`~~ — `docker/traefik/dynamic/bootstrap.yml`.
+- [x] ~~Tests:~~
+  - [x] ~~test de conexión auth~~ — `tests/test_socketio_auth.py`.
+  - [x] ~~test de streaming básico (manual)~~ — `tests/test_socketio_streaming.py` + `scripts/test-socketio.sh`.
 
 ---
 

@@ -17,10 +17,9 @@ from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import touch_chat_updated_at
 from app.services.ollama import (
     OllamaError,
-    chat_completion,
-    extract_assistant_text,
     extract_usage,
     fake_chat_completion,
+    generate_chat_token_pieces,
 )
 from app.services.retrieval import SearchFilters, hybrid_search
 from app.services.retrieval.types import SearchHit
@@ -102,17 +101,16 @@ def _invoke_llm(
         return text, usage
 
     try:
-        raw = chat_completion(settings, messages=messages, stream=False)
-        text = extract_assistant_text(raw)
-        usage = extract_usage(raw)
-        return text, usage
-    except OllamaError:
-        logger.exception("Ollama no disponible; usando respuesta de respaldo.")
-        if not hits:
-            text, usage = fake_chat_completion(settings, user_query=user_query, hits=[])
+        pieces, usage = generate_chat_token_pieces(settings, messages=messages)
+        text = "".join(pieces).strip()
+        if text:
             return text, usage
-        text, usage = fake_chat_completion(settings, user_query=user_query, hits=hits)
-        return text, usage
+    except OllamaError:
+        logger.exception("Ollama no disponible")
+
+    logger.warning("Ollama sin respuesta; usando respaldo con fragmentos recuperados.")
+    text, usage = fake_chat_completion(settings, user_query=user_query, hits=hits)
+    return text, usage
 
 
 def generate_chat_reply(

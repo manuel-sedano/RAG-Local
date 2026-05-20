@@ -5,6 +5,7 @@ from app.services.ollama.client import (
     chat_completion_stream,
     extract_assistant_text,
     extract_usage,
+    generate_chat_token_pieces,
 )
 from app.services.ollama.errors import OllamaError
 from app.services.ollama.fake import fake_chat_completion
@@ -16,4 +17,5 @@ __all__ = [
     "extract_assistant_text",
     "extract_usage",
     "fake_chat_completion",
+    "generate_chat_token_pieces",
 ]

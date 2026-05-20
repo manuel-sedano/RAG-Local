@@ -250,8 +250,29 @@ docker compose exec ollama ollama pull qwen2.5:7b-instruct
 # En backend/.env: OLLAMA_HOST=127.0.0.1 si uvicorn en host; OLLAMA_HOST=ollama si API en compose
 export CHAT_LLM_BACKEND=ollama
 export LLM_MODEL=qwen2.5:7b-instruct
-cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
-# Swagger: POST /api/kbs/{kb_id}/chats/{chat_id}/messages con stream=false
+cd backend && source .venv/bin/activate && uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
+# Swagger: POST /api/kbs/{kb_id}/chats/{chat_id}/messages (stream=false o stream=true + Socket.IO)
 ```
 
 Variables: `LLM_MODEL`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `CHAT_LLM_BACKEND`, `CHAT_DEFAULT_TOP_K`, `OLLAMA_HOST`, `OLLAMA_PORT`, `OLLAMA_TIMEOUT_SECONDS`.
+
+### Socket.IO (`/chat`, streaming)
+
+Requiere `python-socketio` y arrancar con **`app.main:asgi_application`** (no solo `app`).
+
+```bash
+pip install -e ".[dev]"
+export SOCKETIO_ENABLED=true
+uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
+```
+
+**Tests:**
+
+```bash
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+bash ../scripts/test-socketio.sh
+```
+
+**Frontend:** `npm install` en `frontend/`, `frontend/.env.local` con `NEXT_PUBLIC_API_BASE_URL`, ruta `/kbs/{kbId}/chats/{chatId}`.
+
+**Traefik:** `PathPrefix(/socket.io)` → backend (ver `docker/traefik/dynamic/bootstrap.yml`).

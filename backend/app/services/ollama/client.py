@@ -20,6 +20,27 @@ def _chat_url(settings: Settings) -> str:
     return f"{settings.ollama_http_url.rstrip('/')}/api/chat"
 
 
+def _stream_timeout(settings: Settings) -> httpx.Timeout:
+    """Sin tope de lectura entre chunks (el modelo puede tardar en el primer token)."""
+    return httpx.Timeout(connect=30.0, read=None, write=30.0, pool=30.0)
+
+
+def _request_timeout(settings: Settings) -> httpx.Timeout:
+    return httpx.Timeout(settings.ollama_timeout_seconds)
+
+
+def _content_from_stream_chunk(data: dict[str, Any]) -> str:
+    msg = data.get("message")
+    if isinstance(msg, dict):
+        piece = msg.get("content")
+        if piece:
+            return str(piece)
+    piece = data.get("content")
+    if piece:
+        return str(piece)
+    return ""
+
+
 def _should_retry(status: int | None, exc: Exception | None) -> bool:
     if exc is not None:
         return True
@@ -51,7 +72,7 @@ def chat_completion(
         },
     }
 
-    timeout = httpx.Timeout(settings.ollama_timeout_seconds)
+    timeout = _request_timeout(settings)
     last_exc: Exception | None = None
     attempts = settings.ollama_max_retries + 1
 
@@ -95,7 +116,7 @@ def chat_completion_stream(
         },
     }
 
-    timeout = httpx.Timeout(settings.ollama_timeout_seconds)
+    timeout = _stream_timeout(settings)
     last_exc: Exception | None = None
     attempts = settings.ollama_max_retries + 1
 
@@ -118,10 +139,9 @@ def chat_completion_stream(
                             data = json.loads(line)
                         except json.JSONDecodeError:
                             continue
-                        msg = data.get("message") or {}
-                        piece = msg.get("content")
+                        piece = _content_from_stream_chunk(data)
                         if piece:
-                            yield str(piece)
+                            yield piece
                         if data.get("done"):
                             return
                     return
@@ -139,6 +159,39 @@ def extract_assistant_text(ollama_response: dict[str, Any]) -> str:
     msg = ollama_response.get("message") or {}
     content = msg.get("content")
     return (content or "").strip()
+
+
+def generate_chat_token_pieces(
+    settings: Settings,
+    *,
+    messages: list[dict[str, str]],
+) -> tuple[list[str], dict[str, int] | None]:
+    """Stream Ollama; si no hay tokens, intenta POST sin stream."""
+    pieces: list[str] = []
+    try:
+        for piece in chat_completion_stream(settings, messages=messages):
+            if piece:
+                pieces.append(piece)
+    except OllamaError:
+        logger.exception("Ollama stream falló")
+
+    if pieces:
+        return pieces, None
+
+    logger.warning(
+        "Ollama stream sin contenido (modelo=%s); probando /api/chat sin stream",
+        settings.llm_model,
+    )
+    try:
+        raw = chat_completion(settings, messages=messages, stream=False)
+        text = extract_assistant_text(raw)
+        usage = extract_usage(raw)
+        if text:
+            return [w + " " for w in text.split() if w], usage
+        return [], usage
+    except OllamaError:
+        logger.exception("Ollama /api/chat sin stream falló")
+        return [], None
 
 
 def extract_usage(ollama_response: dict[str, Any]) -> dict[str, int] | None:
