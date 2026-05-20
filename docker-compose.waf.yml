@@ -24,8 +24,8 @@ services:
       MODSEC_AUDIT_LOG: /dev/stdout
       MODSEC_AUDIT_LOG_FORMAT: JSON
       # Alineado con MAX_UPLOAD_MB=50 (+ margen multipart)
-      MAX_FILE_SIZE: "${WAF_MAX_BODY_BYTES:-52428800}"
-      MODSEC_REQ_BODY_LIMIT: "${WAF_MAX_BODY_BYTES:-52428800}"
+      MAX_FILE_SIZE: "52428800"
+      MODSEC_REQ_BODY_LIMIT: "52428800"
       PROXY_TIMEOUT: "300"
       SERVER_NAME: localhost
     volumes:
@@ -51,8 +51,9 @@ services:
     networks:
       - rag_net
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
-    command: -config.file=/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
