@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from app.core.config import Settings
+from app.services.chat.intent import is_conversational_message, is_farewell_message
 from app.services.retrieval.types import SearchHit
 
 _NO_EVIDENCE_REPLY = (
@@ -24,19 +24,6 @@ _FAREWELL_REPLY = (
     "¡Hasta luego! Cuando quieras, vuelve a preguntar sobre tus documentos."
 )
 
-_CONVERSATIONAL_RE = re.compile(
-    r"\b(hola|hello|hi|hey|buenos\s+d[ií]as|buenas\s+tardes|buenas\s+noches|"
-    r"adi[oó]s|bye|gracias|thank\s+you)\b",
-    re.IGNORECASE,
-)
-
-
-def _is_conversational(query: str) -> bool:
-    q = query.strip()
-    if not q or len(q) > 80:
-        return False
-    return _CONVERSATIONAL_RE.search(q) is not None
-
 
 def fake_chat_completion(
     settings: Settings,
@@ -46,14 +33,14 @@ def fake_chat_completion(
     force_spanish: bool = True,
 ) -> tuple[str, dict[str, int]]:
     _ = (settings, force_spanish)
+    if is_conversational_message(user_query):
+        if is_farewell_message(user_query):
+            text = _FAREWELL_REPLY
+        else:
+            text = _GREETING_REPLY
+        return text, {"prompt_tokens": 0, "completion_tokens": len(text)}
+
     if not hits:
-        if _is_conversational(user_query):
-            q = user_query.strip().lower()
-            if any(w in q for w in ("adiós", "adios", "bye", "hasta")):
-                text = _FAREWELL_REPLY
-            else:
-                text = _GREETING_REPLY
-            return text, {"prompt_tokens": 0, "completion_tokens": len(text)}
         return _NO_EVIDENCE_REPLY, {
             "prompt_tokens": 0,
             "completion_tokens": len(_NO_EVIDENCE_REPLY),

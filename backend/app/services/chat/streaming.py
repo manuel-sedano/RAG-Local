@@ -24,6 +24,7 @@ from app.services.chat.generation import (
     _load_chunk_pages,
     _persist_citations,
 )
+from app.services.chat.intent import is_conversational_message
 from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import get_chat_for_kb, touch_chat_updated_at
 from app.services.ollama import (
@@ -149,25 +150,30 @@ def run_chat_stream_prepare_sync(
     content = user_content.strip()
     top_k = _effective_top_k(settings, rag)
 
-    search_result = hybrid_search(
-        session,
-        settings,
-        kb_id=kb_id,
-        query=content,
-        top_k=top_k,
-        filters=rag.filters if rag else None,
-        hybrid=rag.hybrid if rag else None,
-        rerank=True,
-    )
-    hits = search_result.hits
-    page_map = _load_chunk_pages(session, hits)
-    valid_hits = [h for h in hits if h.chunk_id in page_map]
-    if len(valid_hits) < len(hits):
-        logger.warning(
-            "Se omitieron %s hits sin chunk en Postgres (chat_id=%s)",
-            len(hits) - len(valid_hits),
-            chat_id,
+    if is_conversational_message(content):
+        hits = []
+        valid_hits: list = []
+        page_map = {}
+    else:
+        search_result = hybrid_search(
+            session,
+            settings,
+            kb_id=kb_id,
+            query=content,
+            top_k=top_k,
+            filters=rag.filters if rag else None,
+            hybrid=rag.hybrid if rag else None,
+            rerank=True,
         )
+        hits = search_result.hits
+        page_map = _load_chunk_pages(session, hits)
+        valid_hits = [h for h in hits if h.chunk_id in page_map]
+        if len(valid_hits) < len(hits):
+            logger.warning(
+                "Se omitieron %s hits sin chunk en Postgres (chat_id=%s)",
+                len(hits) - len(valid_hits),
+                chat_id,
+            )
 
     context_block = build_context_block(
         valid_hits,

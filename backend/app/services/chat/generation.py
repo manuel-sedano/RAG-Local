@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import Settings
 from app.models.chat import Chat, ChatMessage, MessageCitation
 from app.models.document import Chunk
+from app.services.chat.intent import is_conversational_message
 from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import touch_chat_updated_at
 from app.services.ollama import (
@@ -129,17 +130,20 @@ def generate_chat_reply(
         raise ValueError(msg)
 
     top_k = _effective_top_k(settings, rag)
-    search_result = hybrid_search(
-        session,
-        settings,
-        kb_id=chat.kb_id,
-        query=content,
-        top_k=top_k,
-        filters=rag.filters if rag else None,
-        hybrid=rag.hybrid if rag else None,
-        rerank=True,
-    )
-    hits = search_result.hits
+    if is_conversational_message(content):
+        hits: list[SearchHit] = []
+    else:
+        search_result = hybrid_search(
+            session,
+            settings,
+            kb_id=chat.kb_id,
+            query=content,
+            top_k=top_k,
+            filters=rag.filters if rag else None,
+            hybrid=rag.hybrid if rag else None,
+            rerank=True,
+        )
+        hits = search_result.hits
 
     user_msg = ChatMessage(chat_id=chat.id, role="user", content=content)
     session.add(user_msg)
