@@ -505,15 +505,15 @@ Reglas:
 ### Feature branch: `feat/security-waf-modsecurity`
 
 - [ ] Docker:
-  - [ ] contenedor ModSecurity + OWASP CRS
-  - [ ] routing Traefik → WAF → backend
-  - [ ] modo inicial `DetectionOnly`
-  - [ ] logging de eventos WAF a Loki
+  - [x] contenedor ModSecurity + OWASP CRS
+  - [x] routing Traefik → WAF → backend
+  - [x] modo inicial `DetectionOnly`
+  - [x] logging de eventos WAF a Loki
 - [ ] Ajustes:
-  - [ ] excepciones mínimas para uploads (sin abrir demasiado)
-  - [ ] límites de body size
+  - [x] excepciones mínimas para uploads (sin abrir demasiado)
+  - [x] límites de body size
 - [ ] Tests:
-  - [ ] requests con payload XSS/SQLi bloqueados
+  - [x] requests con payload XSS/SQLi bloqueados
 
 ## Feature: rate limiting
 

@@ -230,6 +230,7 @@ CLAMAV_PORT=3310
 # WAF (si se usa contenedor separado)
 WAF_ENABLED=true
 WAF_MODE=DetectionOnly
+WAF_MAX_BODY_BYTES=52428800
 
 # Traefik (rutas/hosts locales)
 TRAEFIK_DASHBOARD_ENABLED=false

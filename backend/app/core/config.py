@@ -141,6 +141,20 @@ class Settings(BaseSettings):
         description="Directorio absoluto o vacío (<raíz repo>/uploads).",
     )
     max_upload_mb: int = Field(default=50, ge=1, le=512)
+    waf_enabled: bool = Field(
+        default=True,
+        description="Habilita el contenedor WAF en despliegues con perfil compose `waf`.",
+    )
+    waf_mode: Literal["DetectionOnly", "On", "Off"] = Field(
+        default="DetectionOnly",
+        description="MODSEC_RULE_ENGINE del contenedor CRS (DetectionOnly | On | Off).",
+    )
+    waf_max_body_bytes: int = Field(
+        default=52_428_800,
+        ge=1024,
+        le=536_870_912,
+        description="Limite de cuerpo de peticion en ModSecurity (MODSEC_REQ_BODY_LIMIT).",
+    )
     allowed_mime_types: str = Field(
         default=(
             "application/pdf,"

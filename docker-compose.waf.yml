@@ -1,0 +1,58 @@
+# Override para activar WAF ModSecurity entre Traefik y el backend.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
+# Con logs en Loki: añade --profile observability
+
+services:
+  traefik:
+    volumes:
+      - ./docker/traefik/dynamic/bootstrap-waf.yml:/etc/traefik/dynamic/bootstrap.yml:ro
+
+  waf:
+    image: owasp/modsecurity-crs:4-nginx-alpine
+    container_name: rag_waf
+    profiles:
+      - waf
+    restart: unless-stopped
+    networks:
+      - rag_net
+    environment:
+      BACKEND: http://backend:80
+      PORT: "8080"
+      # Desde .env raíz (WAF_MODE=DetectionOnly | On | Off)
+      MODSEC_RULE_ENGINE: ${WAF_MODE:-DetectionOnly}
+      MODSEC_AUDIT_ENGINE: "On"
+      MODSEC_AUDIT_LOG: /dev/stdout
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+      # Alineado con MAX_UPLOAD_MB=50 (+ margen multipart)
+      MAX_FILE_SIZE: "${WAF_MAX_BODY_BYTES:-52428800}"
+      MODSEC_REQ_BODY_LIMIT: "${WAF_MAX_BODY_BYTES:-52428800}"
+      PROXY_TIMEOUT: "300"
+      SERVER_NAME: localhost
+    volumes:
+      - ./docker/waf/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf:/opt/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    depends_on:
+      - backend
+    labels:
+      - logging.promtail=true
+      - logging.job=waf
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: rag_promtail
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki

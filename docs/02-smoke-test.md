@@ -102,6 +102,22 @@ Comprobar que el contenedor `rag_clamav` pasa a estado healthy o running estable
 
 ---
 
+
+---
+
+## 7b. Perfil **waf** (ModSecurity CRS)
+
+Requiere el override `docker-compose.waf.yml`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
+./scripts/test-waf.sh
+```
+
+- `curl -fsS http://localhost/api/health` debe responder JSON del backend.
+- Con `WAF_MODE=On`, un payload SQLi en query string debe devolver `403`.
+- Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability` y Promtail).
+
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 
 ```bash
