@@ -485,35 +485,35 @@ Reglas:
 
 ### Feature branch: `feat/security-clamav`
 
-- [ ] Docker:
-  - [ ] agregar servicio `clamav` (clamd)
-  - [ ] healthcheck
-- [ ] Worker:
-  - [ ] integrar escaneo antes de parse
-  - [ ] cuarentena:
-    - [ ] mover archivo a `uploads/quarantine/`
-    - [ ] marcar doc `QUARANTINED`
-  - [ ] registrar `security_event` con hash y firma
-- [ ] Backend/Frontend:
-  - [ ] mostrar estado “en cuarentena”
-  - [ ] UI mensajes claros en español
-- [ ] Tests:
-  - [ ] prueba con archivo EICAR (si se autoriza en entorno)
+- [x] ~~Docker:~~
+  - [x] ~~agregar servicio `clamav` (clamd)~~ — perfil `clamav`, puerto `127.0.0.1:3310`.
+  - [x] ~~healthcheck~~ — `clamdcheck.sh`, `start_period` 300s.
+- [x] ~~Worker:~~
+  - [x] ~~integrar escaneo antes de parse~~ — `app/services/antivirus/` + etapa `antivirus` en `ingest.py`.
+  - [x] ~~cuarentena:~~
+    - [x] ~~mover archivo a `uploads/quarantine/`~~ — `quarantine.py`.
+    - [x] ~~marcar doc `QUARANTINED`~~
+  - [x] ~~registrar `security_event` con hash y firma~~ — `DOCUMENT_QUARANTINED`.
+- [x] ~~Backend/Frontend:~~
+  - [x] ~~mostrar estado “en cuarentena”~~ — badge y bloqueo descarga (ya en API).
+  - [x] ~~UI mensajes claros en español~~ — `documents/page.tsx`.
+- [x] ~~Tests:~~
+  - [x] ~~prueba con archivo EICAR (si se autoriza en entorno)~~ — `test_clamav_unit.py`, `test_ingestion_worker.py`, `test_clamav_integration.py` + `scripts/test-clamav.sh`.
 
 ## Feature: WAF
 
 ### Feature branch: `feat/security-waf-modsecurity`
 
-- [ ] Docker:
-  - [ ] contenedor ModSecurity + OWASP CRS
-  - [ ] routing Traefik → WAF → backend
-  - [ ] modo inicial `DetectionOnly`
-  - [ ] logging de eventos WAF a Loki
-- [ ] Ajustes:
-  - [ ] excepciones mínimas para uploads (sin abrir demasiado)
-  - [ ] límites de body size
-- [ ] Tests:
-  - [ ] requests con payload XSS/SQLi bloqueados
+- [x] ~~Docker:~~
+  - [x] ~~contenedor ModSecurity + OWASP CRS~~ — `owasp/modsecurity-crs:4-nginx-alpine` en `docker-compose.waf.yml` (perfil `waf`).
+  - [x] ~~routing Traefik → WAF → backend~~ — `bootstrap-waf.yml`; `/socket.io` directo al backend.
+  - [x] ~~modo inicial `DetectionOnly`~~ — `WAF_MODE` → `MODSEC_RULE_ENGINE`.
+  - [x] ~~logging de eventos WAF a Loki~~ — audit JSON stdout + Promtail (`logging.promtail=true`).
+- [x] ~~Ajustes:~~
+  - [x] ~~excepciones mínimas para uploads (sin abrir demasiado)~~ — `docker/waf/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf`.
+  - [x] ~~límites de body size~~ — `MAX_FILE_SIZE` / `MODSEC_REQ_BODY_LIMIT` = `WAF_MAX_BODY_BYTES` (50 MB).
+- [x] ~~Tests:~~
+  - [x] ~~requests con payload XSS/SQLi bloqueados~~ — `scripts/test-waf.sh`, `tests/test_waf_integration.py` (con `WAF_MODE=On`).
 
 ## Feature: rate limiting
 

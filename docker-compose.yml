@@ -1,4 +1,5 @@
 # Ver `docker/CONVENTIONS.md` para nombres de red, volúmenes y perfiles opcionales.
+name: rag
 
 services:
   traefik:
@@ -125,10 +126,18 @@ services:
     profiles:
       - clamav
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3310:3310"
     networks:
       - rag_net
     volumes:
       - rag_vol_clamav:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 300s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:v2.52.0
@@ -193,10 +202,26 @@ services:
     command:
       - -config.file=/etc/loki/local-config.yaml
 
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: rag_promtail
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
 networks:
   rag_net:
     name: rag_net
-    driver: bridge
+    external: true
 
 volumes:
   rag_vol_postgres:

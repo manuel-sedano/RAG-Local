@@ -227,9 +227,11 @@ CLAMAV_ENABLED=true
 CLAMAV_HOST=clamav
 CLAMAV_PORT=3310
 
-# WAF (si se usa contenedor separado)
+# WAF (docker-compose.waf.yml + --profile waf)
 WAF_ENABLED=true
 WAF_MODE=DetectionOnly
+WAF_MAX_BODY_BYTES=52428800
+WAF_IMAGE=owasp/modsecurity-crs:4-nginx-alpine-202509220609
 
 # Traefik (rutas/hosts locales)
 TRAEFIK_DASHBOARD_ENABLED=false

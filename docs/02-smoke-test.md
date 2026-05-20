@@ -94,13 +94,54 @@ Debe mostrarse el fichero `.smoke` (prueba de escritura en el volumen nombrado).
 Primer arranque puede tardar varios minutos (bases de firmas).
 
 ```bash
-docker compose --profile clamav up -d
-docker compose ps clamav
+docker compose --profile clamav up -d clamav
+./scripts/test-clamav.sh
 ```
 
-Comprobar que el contenedor `rag_clamav` pasa a estado healthy o running estable según la imagen.
+Comprobar que `rag_clamav` pasa a **healthy** (la primera descarga de firmas puede tardar varios minutos).
+
+**pytest:** usa `backend/.venv`, no el `venv` de la raíz del repo:
+
+```bash
+cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
+```
 
 ---
+
+## 7b. Perfil **waf** (ModSecurity CRS)
+
+Requiere el override `docker-compose.waf.yml` y la imagen `WAF_IMAGE` (tag con fecha en `.env`).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
+./scripts/test-waf.sh
+WAF_MODE=On ./scripts/test-waf.sh
+```
+
+- `curl -fsS http://localhost/api/health` debe responder JSON del backend.
+- Con `WAF_MODE=On`, un payload SQLi en query string debe devolver `403`.
+- Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability`; Promtail está en `docker-compose.yml`).
+
+**pytest opcional:**
+
+```bash
+export TEST_WAF_BASE_URL=http://localhost
+export WAF_MODE=On   # solo para test_sqli_query_blocked_when_waf_mode_on
+cd backend && source .venv/bin/activate && pytest tests/test_waf_integration.py -v
+```
+
+O: `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
+
+**Bloqueo 403:** desde la **raíz del repo** (no desde `backend/`):
+
+```bash
+./scripts/docker-rag-clean.sh   # si hay conflictos rag_backend / rag_worker
+./scripts/sync-env-security.sh  # WAF_MODE=On en .env y backend/.env
+WAF_MODE=On ./scripts/recreate-waf.sh
+cd backend && source .venv/bin/activate
+export TEST_WAF_BASE_URL=http://localhost
+pytest tests/test_waf_integration.py -v
+```
 
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 

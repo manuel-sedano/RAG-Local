@@ -20,10 +20,11 @@ Usar **snake_case** corto, alineado al rol: `traefik`, `frontend`, `backend`, `w
 | Perfil | Servicios |
 |--------|-----------|
 | `clamav` | Antivirus para escaneo de subidas (arranque lento). |
-| `observability` | Prometheus, Grafana, Loki. |
+| `waf` | ModSecurity CRS entre Traefik y backend (`docker-compose.waf.yml`). |
+| `observability` | Prometheus, Grafana, Loki, Promtail (scrape contenedores con label `logging.promtail=true`). |
 
 Ejemplo:
 
 ```bash
-docker compose --profile clamav --profile observability up -d
+docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf --profile observability up -d
 ```

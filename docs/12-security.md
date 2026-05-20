@@ -304,8 +304,8 @@ Exclusión típica de la salida al cliente:
 - [ ] RBAC/membresía por KB
 - [ ] Upload allowlist (PDF/DOCX/TXT) + magic bytes
 - [ ] Límite de tamaño y rate limiting de upload
-- [ ] Escaneo ClamAV y cuarentena
-- [ ] WAF con OWASP CRS (DetectionOnly → Blocking)
+- [x] Escaneo ClamAV y cuarentena (`feat/security-clamav`)
+- [x] WAF con OWASP CRS (DetectionOnly → Blocking)
 - [ ] Rate limiting en Traefik + Redis por usuario
 - [ ] Logs con request_id + auditoría de eventos
 - [ ] Sanitización de Markdown y protección XSS
