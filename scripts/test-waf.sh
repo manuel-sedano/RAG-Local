@@ -43,8 +43,7 @@ docker logs rag_waf 2>&1 | tail -n 15 || true
 
 if [ "${RUN_WAF_PYTEST:-0}" = "1" ]; then
   echo "== pytest integracion (requiere backend/.venv) =="
-  export TEST_WAF=1
-  export WAF_TEST_BASE_URL=http://127.0.0.1
+  export TEST_WAF_BASE_URL=http://127.0.0.1
   cd "${ROOT}/backend"
   if [ ! -d .venv ]; then
     echo "ERROR: crea backend/.venv: cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'" >&2

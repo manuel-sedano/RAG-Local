@@ -122,7 +122,15 @@ WAF_MODE=On ./scripts/test-waf.sh
 - Con `WAF_MODE=On`, un payload SQLi en query string debe devolver `403`.
 - Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability`; Promtail está en `docker-compose.yml`).
 
-**pytest opcional:** `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
+**pytest opcional:**
+
+```bash
+export TEST_WAF_BASE_URL=http://localhost
+export WAF_MODE=On   # solo para test_sqli_query_blocked_when_waf_mode_on
+cd backend && source .venv/bin/activate && pytest tests/test_waf_integration.py -v
+```
+
+O: `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
 
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 

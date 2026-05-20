@@ -18,12 +18,24 @@ import os
 import httpx
 import pytest
 
+def _waf_base_url() -> str:
+    explicit = os.environ.get("TEST_WAF_BASE_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    legacy = os.environ.get("WAF_TEST_BASE_URL", "").strip()
+    if legacy:
+        return legacy.rstrip("/")
+    if os.environ.get("TEST_WAF", "").strip() == "1":
+        return "http://127.0.0.1"
+    return ""
+
+
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("TEST_WAF_BASE_URL", "").strip(),
+    not _waf_base_url(),
     reason="Define TEST_WAF_BASE_URL (p. ej. http://localhost) con el perfil waf activo.",
 )
 
-BASE = os.environ.get("TEST_WAF_BASE_URL", "http://localhost").rstrip("/")
+BASE = _waf_base_url() or "http://localhost"
 WAF_MODE = os.environ.get("WAF_MODE", "DetectionOnly").strip()
 
 
