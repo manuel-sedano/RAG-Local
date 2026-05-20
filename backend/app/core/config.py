@@ -121,6 +121,19 @@ class Settings(BaseSettings):
         description="Tope de caracteres del bloque de contexto en el prompt.",
     )
 
+    socketio_enabled: bool = Field(
+        default=True,
+        description="Montar servidor Socket.IO junto a FastAPI.",
+    )
+    socketio_path: str = Field(
+        default="/socket.io",
+        description="Path HTTP del engine.io (Traefik debe enrutarlo al backend).",
+    )
+    socketio_cors_origins: str = Field(
+        default="",
+        description="Orígenes CORS Socket.IO (vacío = usar CORS_ALLOW_ORIGINS).",
+    )
+
     health_http_timeout_seconds: float = Field(default=3.0)
 
     upload_storage_dir: str = Field(
@@ -317,6 +330,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def socketio_cors_origin_list(self) -> list[str]:
+        raw = self.socketio_cors_origins.strip()
+        if raw:
+            return [o.strip() for o in raw.split(",") if o.strip()]
+        return self.cors_origins
 
     @computed_field  # type: ignore[prop-decorator]
     @property

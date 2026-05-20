@@ -2,6 +2,12 @@
 # el socket/API no es compatible con el cliente embebido de Traefik (p. ej. algunos entornos WSL + Docker Desktop).
 http:
   routers:
+    rag-socketio:
+      rule: PathPrefix(`/socket.io`)
+      entryPoints:
+        - web
+      service: rag-backend-svc
+      priority: 110
     rag-backend:
       rule: PathPrefix(`/api`)
       entryPoints:

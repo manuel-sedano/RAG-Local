@@ -82,23 +82,24 @@ async def _iter_llm_token_pieces(
     def _ollama_producer() -> None:
         got_any = False
         try:
-            for piece in chat_completion_stream(settings, messages=messages):
-                if piece:
-                    got_any = True
-                    loop.call_soon_threadsafe(queue.put_nowait, piece)
-        except OllamaError:
-            logger.exception("Ollama stream falló")
-        if not got_any:
             try:
-                raw = chat_completion(settings, messages=messages, stream=False)
-                text = extract_assistant_text(raw)
-                if text:
-                    got_any = True
-                    for word in text.split():
-                        if word:
-                            loop.call_soon_threadsafe(queue.put_nowait, word + " ")
+                for piece in chat_completion_stream(settings, messages=messages):
+                    if piece:
+                        got_any = True
+                        loop.call_soon_threadsafe(queue.put_nowait, piece)
             except OllamaError:
-                logger.exception("Ollama /api/chat sin stream falló")
+                logger.exception("Ollama stream falló")
+            if not got_any:
+                try:
+                    raw = chat_completion(settings, messages=messages, stream=False)
+                    text = extract_assistant_text(raw)
+                    if text:
+                        got_any = True
+                        for word in text.split():
+                            if word:
+                                loop.call_soon_threadsafe(queue.put_nowait, word + " ")
+                except OllamaError:
+                    logger.exception("Ollama /api/chat sin stream falló")
         finally:
             loop.call_soon_threadsafe(queue.put_nowait, None)
 
