@@ -94,29 +94,35 @@ Debe mostrarse el fichero `.smoke` (prueba de escritura en el volumen nombrado).
 Primer arranque puede tardar varios minutos (bases de firmas).
 
 ```bash
-docker compose --profile clamav up -d
-docker compose ps clamav
+docker compose --profile clamav up -d clamav
+./scripts/test-clamav.sh
 ```
 
-Comprobar que el contenedor `rag_clamav` pasa a estado healthy o running estable según la imagen.
+Comprobar que `rag_clamav` pasa a **healthy** (la primera descarga de firmas puede tardar varios minutos).
 
----
+**pytest:** usa `backend/.venv`, no el `venv` de la raíz del repo:
 
+```bash
+cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
+```
 
 ---
 
 ## 7b. Perfil **waf** (ModSecurity CRS)
 
-Requiere el override `docker-compose.waf.yml`:
+Requiere el override `docker-compose.waf.yml` y la imagen `WAF_IMAGE` (tag con fecha en `.env`).
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
 ./scripts/test-waf.sh
+WAF_MODE=On ./scripts/test-waf.sh
 ```
 
 - `curl -fsS http://localhost/api/health` debe responder JSON del backend.
 - Con `WAF_MODE=On`, un payload SQLi en query string debe devolver `403`.
-- Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability` y Promtail).
+- Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability`; Promtail está en `docker-compose.yml`).
+
+**pytest opcional:** `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
 
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 

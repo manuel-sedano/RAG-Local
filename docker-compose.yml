@@ -193,6 +193,22 @@ services:
     command:
       - -config.file=/etc/loki/local-config.yaml
 
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: rag_promtail
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
 networks:
   rag_net:
     name: rag_net

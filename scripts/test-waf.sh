@@ -8,6 +8,9 @@ COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.waf.yml)
 WAF_MODE="${WAF_MODE:-DetectionOnly}"
 export WAF_MODE
 
+echo "== Descargando imagen WAF (WAF_IMAGE en .env; tag con fecha en Docker Hub) =="
+"${COMPOSE[@]}" --profile waf pull waf
+
 echo "== Levantando stack con perfil waf (WAF_MODE=${WAF_MODE}) =="
 "${COMPOSE[@]}" --profile waf up -d traefik backend waf
 
@@ -37,5 +40,19 @@ fi
 
 echo "== Ultimas lineas de audit ModSecurity =="
 docker logs rag_waf 2>&1 | tail -n 15 || true
+
+if [ "${RUN_WAF_PYTEST:-0}" = "1" ]; then
+  echo "== pytest integracion (requiere backend/.venv) =="
+  export TEST_WAF=1
+  export WAF_TEST_BASE_URL=http://127.0.0.1
+  cd "${ROOT}/backend"
+  if [ ! -d .venv ]; then
+    echo "ERROR: crea backend/.venv: cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  pytest -q tests/test_waf_integration.py
+fi
 
 echo "OK: test-waf.sh"

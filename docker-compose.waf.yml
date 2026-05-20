@@ -8,7 +8,8 @@ services:
       - ./docker/traefik/dynamic/bootstrap-waf.yml:/etc/traefik/dynamic/bootstrap.yml:ro
 
   waf:
-    image: owasp/modsecurity-crs:4-nginx-alpine
+    # Tag con fecha (4-nginx-alpine sin fecha no existe en Docker Hub)
+    image: ${WAF_IMAGE:-owasp/modsecurity-crs:4-nginx-alpine-202509220609}
     container_name: rag_waf
     profiles:
       - waf
@@ -41,19 +42,3 @@ services:
     labels:
       - logging.promtail=true
       - logging.job=waf
-
-  promtail:
-    image: grafana/promtail:2.9.4
-    container_name: rag_promtail
-    profiles:
-      - observability
-    restart: unless-stopped
-    networks:
-      - rag_net
-    volumes:
-      - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    command:
-      - -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
