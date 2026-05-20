@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from app.core.config import Settings, get_settings
 from app.models.chat import Chat, ChatMessage, MessageCitation
 from app.models.user import User
 from app.services.chat import RagRequestConfig, generate_chat_reply
+from app.services.chat.streaming import schedule_chat_stream_task
 from app.services.chat_paths import build_file_path, build_viewer_path
 from app.services.chat_service import (
     create_chat,
@@ -278,7 +279,8 @@ def get_chat_messages(
         202: {"model": PostMessageStreamResponse},
     },
 )
-def post_chat_message(
+async def post_chat_message(
+    request: Request,
     kb_id: Annotated[uuid.UUID, Depends(require_kb_access("viewer"))],
     chat_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
@@ -295,9 +297,27 @@ def post_chat_message(
         user_msg = ChatMessage(chat_id=chat.id, role="user", content=body.content)
         db.add(user_msg)
         db.flush()
+        assistant_msg = ChatMessage(
+            chat_id=chat.id,
+            role="assistant",
+            content="",
+            model=settings.llm_model,
+        )
+        db.add(assistant_msg)
+        db.flush()
         touch_chat_updated_at(db, chat)
+        db.commit()
+        rag_cfg = _rag_config_from_body(body.rag)
+        schedule_chat_stream_task(
+            request.app,
+            kb_id=kb_id,
+            chat_id=chat_id,
+            assistant_message_id=assistant_msg.id,
+            user_content=body.content,
+            rag=rag_cfg,
+        )
         payload = PostMessageStreamResponse(
-            message_id=user_msg.id,
+            message_id=assistant_msg.id,
             status="STREAMING",
             socket={
                 "namespace": "/chat",
