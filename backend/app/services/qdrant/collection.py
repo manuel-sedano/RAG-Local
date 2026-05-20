@@ -40,7 +40,8 @@ def ensure_collection(client: QdrantClient, settings: Settings, vector_size: int
                 "qdrant_dimension_mismatch",
                 (
                     f"La colección {name} tiene dimensión {existing_size}, "
-                    f"pero el modelo actual produce {vector_size}."
+                    f"pero el modelo actual produce {vector_size}. "
+                    "En dev: bash scripts/reset-qdrant-collection.sh y reindexa los documentos."
                 ),
             )
         return

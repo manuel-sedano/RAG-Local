@@ -203,3 +203,76 @@ pip install -e ".[rerank]"
 export RAG_RERANK_BACKEND=flashrank
 # pytest o POST /api/kbs/{kb_id}/search con rerank=true en Swagger
 ```
+
+### Tests de chats (`test_chat_paths.py`, `test_chat_integration.py`)
+
+**Unitarios** (rutas de citas, sin Postgres):
+
+```bash
+pytest tests/test_chat_paths.py -v --tb=short
+```
+
+**Integración HTTP** (CRUD + autorización por KB + historial con citas):
+
+```bash
+docker compose up -d postgres
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+pytest tests/test_chat_integration.py -v --tb=short
+# o desde la raíz del repo:
+bash scripts/test-chat.sh
+```
+
+**Prueba manual (Swagger):** tras login, crea una KB y usa `POST /api/kbs/{kb_id}/chats`, luego lista y abre mensajes. No hace falta variable de entorno nueva: los modelos ya están en la migración inicial.
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Swagger: http://localhost:8000/docs → sección «chats»
+```
+
+### Tests de generación RAG en chat (`test_chat_prompting_unit.py`, `test_chat_generation_integration.py`)
+
+En `ENVIRONMENT=test` el LLM es **fake** (sin Ollama). Retrieval usa BM25 en memoria; Qdrant opcional.
+
+```bash
+docker compose up -d postgres
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+export QDRANT_ENABLED=false
+pytest tests/test_chat_prompting_unit.py tests/test_chat_generation_integration.py -v --tb=short
+# o desde la raíz:
+bash scripts/test-chat-rag.sh
+```
+
+**Prueba manual con Ollama real (Docker):**
+
+```bash
+docker compose up -d postgres ollama
+docker compose exec ollama ollama pull qwen2.5:7b-instruct
+# En backend/.env: OLLAMA_HOST=127.0.0.1 si uvicorn en host; OLLAMA_HOST=ollama si API en compose
+export CHAT_LLM_BACKEND=ollama
+export LLM_MODEL=qwen2.5:7b-instruct
+cd backend && source .venv/bin/activate && uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
+# Swagger: POST /api/kbs/{kb_id}/chats/{chat_id}/messages (stream=false o stream=true + Socket.IO)
+```
+
+Variables: `LLM_MODEL`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `CHAT_LLM_BACKEND`, `CHAT_DEFAULT_TOP_K`, `OLLAMA_HOST`, `OLLAMA_PORT`, `OLLAMA_TIMEOUT_SECONDS`.
+
+### Socket.IO (`/chat`, streaming)
+
+Requiere `python-socketio` y arrancar con **`app.main:asgi_application`** (no solo `app`).
+
+```bash
+pip install -e ".[dev]"
+export SOCKETIO_ENABLED=true
+uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
+```
+
+**Tests:**
+
+```bash
+export TEST_DATABASE_URL="postgresql+psycopg://rag:rag_local_dev@127.0.0.1:5432/rag_test"
+bash ../scripts/test-socketio.sh
+```
+
+**Frontend:** `npm install` en `frontend/`, `frontend/.env.local` con `NEXT_PUBLIC_API_BASE_URL`, ruta `/kbs/{kbId}/chats/{chatId}`.
+
+**Traefik:** `PathPrefix(/socket.io)` → backend (ver `docker/traefik/dynamic/bootstrap.yml`).

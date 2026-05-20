@@ -57,9 +57,14 @@ export default function Home() {
               <Link href="/kbs">Bases de conocimiento</Link>
             </Button>
             {activeKbId ? (
-              <Button asChild>
-                <Link href={`/kbs/${activeKbId}/documents`}>Documentos de la KB activa</Link>
-              </Button>
+              <>
+                <Button asChild>
+                  <Link href={`/kbs/${activeKbId}/documents`}>Documentos</Link>
+                </Button>
+                <Button asChild>
+                  <Link href={`/kbs/${activeKbId}/chats`}>Chat</Link>
+                </Button>
+              </>
             ) : null}
             <Button type="button" variant="outline" onClick={() => void logout()}>
               Cerrar sesión

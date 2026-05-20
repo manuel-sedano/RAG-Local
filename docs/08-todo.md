@@ -426,56 +426,56 @@ Reglas:
 
 ### Feature branch: `feat/chat-models`
 
-- [ ] DB:
-  - [ ] modelos `chats`, `chat_messages`, `message_citations`
-  - [ ] endpoints:
-    - [ ] `POST /api/kbs/{kb_id}/chats`
-    - [ ] `GET /api/kbs/{kb_id}/chats`
-    - [ ] `GET /api/kbs/{kb_id}/chats/{chat_id}`
-    - [ ] `GET /api/kbs/{kb_id}/chats/{chat_id}/messages`
-- [ ] Tests CRUD chat y autorización por KB
+- [x] ~~DB:~~
+  - [x] ~~modelos `chats`, `chat_messages`, `message_citations`~~ — ORM en `app/models/chat.py` + migración inicial.
+  - [x] ~~endpoints:~~
+    - [x] ~~`POST /api/kbs/{kb_id}/chats`~~ — `app/api/routes/chats.py`.
+    - [x] ~~`GET /api/kbs/{kb_id}/chats`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/chats/{chat_id}`~~
+    - [x] ~~`GET /api/kbs/{kb_id}/chats/{chat_id}/messages`~~ — citas con `viewer_path` / `file_path` derivados en servidor.
+- [x] ~~Tests CRUD chat y autorización por KB~~ — `tests/test_chat_integration.py`, `tests/test_chat_paths.py`, `scripts/test-chat.sh`.
 
 ### Feature branch: `feat/chat-rag-generation`
 
-- [ ] Integración con Ollama:
-  - [ ] wrapper cliente (timeouts, retries)
-  - [ ] streaming tokens
-  - [ ] selección de modelo desde `.env`
-- [ ] Prompting:
-  - [ ] system prompt “siempre en español”
-  - [ ] grounding: si no hay evidencia, decirlo
-  - [ ] formato de salida con fuentes
-- [ ] Citas:
-  - [ ] backend asigna citas basadas en chunks usados
-  - [ ] persistir `message_citations` (`page_start` / `page_end` alineados con `chunks`)
-  - [ ] en respuesta API y evento `chat:citation`: incluir `viewer_path`, `file_path`, `filename_original`, `mime_type` (derivados en servidor; forma en `09-api-spec.md`)
-- [ ] Endpoint:
-  - [ ] `POST /api/kbs/{kb_id}/chats/{chat_id}/messages`
-- [ ] Tests:
-  - [ ] sin contexto → respuesta “no evidencia”
-  - [ ] con contexto → incluye citas
+- [x] ~~Integración con Ollama:~~
+  - [x] ~~wrapper cliente (timeouts, retries)~~ — `app/services/ollama/client.py`.
+  - [x] ~~streaming tokens~~ — `chat_completion_stream` (Socket.IO en rama siguiente).
+  - [x] ~~selección de modelo desde `.env`~~ — `LLM_MODEL` + `CHAT_LLM_BACKEND` (fake en test).
+- [x] ~~Prompting:~~
+  - [x] ~~system prompt “siempre en español”~~ — `app/services/chat/prompting.py`.
+  - [x] ~~grounding: si no hay evidencia, decirlo~~ — respuesta sin hits + fake/Ollama.
+  - [x] ~~formato de salida con fuentes~~ — sección **Fuentes:** en prompt y fake.
+- [x] ~~Citas:~~
+  - [x] ~~backend asigna citas basadas en chunks usados~~ — hits de `hybrid_search`.
+  - [x] ~~persistir `message_citations` (`page_start` / `page_end` alineados con `chunks`)~~ — `generation.py`.
+  - [x] ~~en respuesta API y evento `chat:citation`~~ — API `POST /messages` con `viewer_path` / `file_path`; evento socket en `feat/chat-streaming-socketio`.
+- [x] ~~Endpoint:~~
+  - [x] ~~`POST /api/kbs/{kb_id}/chats/{chat_id}/messages`~~ — `stream=false` → 200; `stream=true` → 202 ack.
+- [x] ~~Tests:~~
+  - [x] ~~sin contexto → respuesta “no evidencia”~~ — `test_chat_generation_integration.py`.
+  - [x] ~~con contexto → incluye citas~~ — mismo archivo + BM25.
 
 ### Feature branch: `feat/chat-streaming-socketio`
 
-- [ ] Backend:
-  - [ ] Socket.IO namespace `/chat`
-  - [ ] auth handshake con JWT
-  - [ ] rooms por `chat_id`
-  - [ ] eventos:
-    - [ ] `chat:join`
-    - [ ] `chat:token`
-    - [ ] `chat:citation`
-    - [ ] `chat:done`
-    - [ ] `ingest:progress`
-- [ ] Frontend:
-  - [ ] cliente Socket.IO
-  - [ ] UI streaming (render incremental)
-  - [ ] reconexión y manejo de errores
-- [ ] Proxy:
-  - [ ] Traefik enruta `/socket.io`
-- [ ] Tests:
-  - [ ] test de conexión auth
-  - [ ] test de streaming básico (manual)
+- [x] ~~Backend:~~
+  - [x] ~~Socket.IO namespace `/chat`~~ — `app/realtime/` + `asgi_application` en `main.py`.
+  - [x] ~~auth handshake con JWT~~ — `app/realtime/auth.py` (auth payload o `?token=`).
+  - [x] ~~rooms por `chat_id`~~ — `chat:join` → room `chat:{chat_id}`.
+  - [x] ~~eventos:~~
+    - [x] ~~`chat:join`~~
+    - [x] ~~`chat:token`~~
+    - [x] ~~`chat:citation`~~
+    - [x] ~~`chat:done`~~
+    - [x] ~~`ingest:progress`~~ — `ingest:join` + `emit_ingest_progress`.
+- [x] ~~Frontend:~~
+  - [x] ~~cliente Socket.IO~~ — `frontend/src/lib/socket-client.ts`.
+  - [x] ~~UI streaming (render incremental)~~ — `frontend/src/app/kbs/[kbId]/chats/[chatId]/page.tsx`.
+  - [x] ~~reconexión y manejo de errores~~ — opciones `reconnection` en cliente.
+- [x] ~~Proxy:~~
+  - [x] ~~Traefik enruta `/socket.io`~~ — `docker/traefik/dynamic/bootstrap.yml`.
+- [x] ~~Tests:~~
+  - [x] ~~test de conexión auth~~ — `tests/test_socketio_auth.py`.
+  - [x] ~~test de streaming básico (manual)~~ — `tests/test_socketio_streaming.py` + `scripts/test-socketio.sh`.
 
 ---
 
