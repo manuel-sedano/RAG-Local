@@ -169,21 +169,20 @@ Topología recomendada:
 
 ### 5.1 En Traefik (perimeter)
 
-Rate limit por IP:
+Rate limit por IP (file provider `docker/traefik/dynamic/bootstrap*.yml`):
 
-- `/api/auth/login`: muy estricto
-- `/api/*`: moderado
-- `/socket.io`: control de conexiones concurrentes
+- `/api/auth/login` (POST): router `rag-auth-login` + middleware `rag-ratelimit-login` (~10 req/min, burst 3).
+- `/api/*`: middleware `rag-ratelimit-api` (~200 req/min, burst 50).
+- `/socket.io`: sin rate limit dedicado en Traefik (control en backend / futuro).
 
 ### 5.2 En backend (application-level)
 
-Usar Redis para:
+Redis (`APP_RATE_LIMIT_*`, `INGEST_UPLOAD_MAX_*`, `AUTH_LOGIN_*`):
 
-- rate limit por usuario
-- rate limit por KB
-- cuotas de ingestion:
-  - max documentos por minuto
-  - max OCR jobs concurrentes
+- rate limit por usuario autenticado: `UserRateLimitMiddleware` (JWT Bearer; excluye health/login/refresh).
+- cuotas de ingesta: `check_ingest_upload_quota` en `POST .../documents/upload` (por usuario y por KB, ventana ~1 min).
+- login/refresh/lockout: `login_rate_limit.py` (existente desde auth).
+- auditoría: filas en `rate_limit_events` cuando la API devuelve `429` (`RATE_LIMIT_AUDIT_ENABLED`).
 
 ### 5.3 Protección contra brute-force
 
@@ -306,7 +305,7 @@ Exclusión típica de la salida al cliente:
 - [ ] Límite de tamaño y rate limiting de upload
 - [x] Escaneo ClamAV y cuarentena (`feat/security-clamav`)
 - [x] WAF con OWASP CRS (DetectionOnly → Blocking)
-- [ ] Rate limiting en Traefik + Redis por usuario
+- [x] Rate limiting en Traefik + Redis por usuario (`feat/security-rate-limits`)
 - [ ] Logs con request_id + auditoría de eventos
 - [ ] Sanitización de Markdown y protección XSS
 - [ ] Guardrails anti prompt injection + grounding con citas

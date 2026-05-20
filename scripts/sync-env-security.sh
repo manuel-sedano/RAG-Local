@@ -38,10 +38,25 @@ upsert CLAMAV_TIMEOUT_SECONDS "120"
 upsert CLAMAV_FAIL_OPEN "false"
 upsert CLAMAV_ALLOW_EICAR_TEST "true"
 
+# Rate limits (Traefik + backend Redis)
+upsert APP_RATE_LIMIT_ENABLED "true"
+upsert APP_RATE_LIMIT_PER_MINUTE "120"
+upsert INGEST_UPLOAD_MAX_PER_USER_PER_MINUTE "10"
+upsert INGEST_UPLOAD_MAX_PER_KB_PER_MINUTE "20"
+upsert RATE_LIMIT_AUDIT_ENABLED "true"
+upsert AUTH_LOGIN_MAX_ATTEMPTS_PER_IP_PER_MINUTE "30"
+upsert AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE "15"
+# Contraseña alineada con docker-compose.yml (evita skips en pytest)
+upsert POSTGRES_PASSWORD "rag_local_dev"
+
 # backend/.env (uvicorn local): mismas vars de seguridad para tests
 BACKEND_ENV="${ROOT}/backend/.env"
 if [[ -f "${BACKEND_ENV}" ]]; then
-  for key in WAF_MODE CLAMAV_ENABLED CLAMAV_HOST CLAMAV_PORT CLAMAV_ALLOW_EICAR_TEST; do
+  for key in WAF_MODE CLAMAV_ENABLED CLAMAV_HOST CLAMAV_PORT CLAMAV_ALLOW_EICAR_TEST \
+    APP_RATE_LIMIT_ENABLED APP_RATE_LIMIT_PER_MINUTE \
+    INGEST_UPLOAD_MAX_PER_USER_PER_MINUTE INGEST_UPLOAD_MAX_PER_KB_PER_MINUTE \
+    RATE_LIMIT_AUDIT_ENABLED AUTH_LOGIN_MAX_ATTEMPTS_PER_IP_PER_MINUTE \
+    AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE; do
     val="$(grep "^${key}=" "${ENV_FILE}" | cut -d= -f2- || true)"
     if [[ -n "${val}" ]]; then
       if grep -q "^${key}=" "${BACKEND_ENV}" 2>/dev/null; then
@@ -54,4 +69,4 @@ if [[ -f "${BACKEND_ENV}" ]]; then
   echo "OK: backend/.env alineado (WAF_MODE, CLAMAV_*)."
 fi
 
-echo "OK: .env actualizado (WAF_MODE=On, CLAMAV_*, WAF_IMAGE, COMPOSE_PROJECT_NAME=rag)."
+echo "OK: .env actualizado (WAF, ClamAV, rate limits, COMPOSE_PROJECT_NAME=rag)."

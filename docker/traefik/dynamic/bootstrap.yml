@@ -8,10 +8,20 @@ http:
         - web
       service: rag-backend-svc
       priority: 110
+    rag-auth-login:
+      rule: Path(`/api/auth/login`) && Method(`POST`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-ratelimit-login
+      service: rag-backend-svc
+      priority: 105
     rag-backend:
       rule: PathPrefix(`/api`)
       entryPoints:
         - web
+      middlewares:
+        - rag-ratelimit-api
       service: rag-backend-svc
       priority: 100
     rag-prometheus:
@@ -38,6 +48,16 @@ http:
       priority: 1
 
   middlewares:
+    rag-ratelimit-login:
+      rateLimit:
+        average: 10
+        burst: 3
+        period: 1m
+    rag-ratelimit-api:
+      rateLimit:
+        average: 200
+        burst: 50
+        period: 1m
     rag-prometheus-stripprefix:
       stripPrefix:
         prefixes:

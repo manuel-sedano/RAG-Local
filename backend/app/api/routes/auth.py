@@ -29,6 +29,7 @@ from app.services.login_rate_limit import (
     clear_password_fail_counters,
     record_failed_password_attempt,
 )
+from app.services.rate_limit_http import record_http_rate_limit_if_429
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 strict_bearer = HTTPBearer()
@@ -79,11 +80,35 @@ def post_login(
     redis_client = get_redis(request)
     ip = _client_ip(request) or "unknown"
     email_n = normalize_email(str(body.email))
-    check_login_rate_limits(redis_client, settings=settings, ip=ip, email_normalized=email_n)
+    try:
+        check_login_rate_limits(redis_client, settings=settings, ip=ip, email_normalized=email_n)
+    except HTTPException as exc:
+        record_http_rate_limit_if_429(
+            exc,
+            db,
+            settings=settings,
+            user_id=None,
+            ip_address=ip,
+            endpoint="/api/auth/login",
+            method="POST",
+        )
+        raise
 
     user = db.execute(select(User).where(User.email == email_n)).scalar_one_or_none()
     if user is not None:
-        check_user_lockout(redis_client, settings=settings, user_id=str(user.id))
+        try:
+            check_user_lockout(redis_client, settings=settings, user_id=str(user.id))
+        except HTTPException as exc:
+            record_http_rate_limit_if_429(
+                exc,
+                db,
+                settings=settings,
+                user_id=user.id,
+                ip_address=ip,
+                endpoint="/api/auth/login",
+                method="POST",
+            )
+            raise
 
     auth_user = authenticate_user(db, email=email_n, password=body.password, settings=settings)
     if auth_user is None:
@@ -168,7 +193,19 @@ def post_refresh(
 ) -> RefreshResponse:
     redis_client = get_redis(request)
     ip = _client_ip(request) or "unknown"
-    check_refresh_rate_limit(redis_client, settings=settings, ip=ip)
+    try:
+        check_refresh_rate_limit(redis_client, settings=settings, ip=ip)
+    except HTTPException as exc:
+        record_http_rate_limit_if_429(
+            exc,
+            db,
+            settings=settings,
+            user_id=None,
+            ip_address=ip,
+            endpoint="/api/auth/refresh",
+            method="POST",
+        )
+        raise
     ua = request.headers.get("user-agent")
     access, refresh = rotate_refresh_token(
         db,
