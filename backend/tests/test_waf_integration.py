@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 
 import httpx
 import pytest
@@ -46,8 +47,20 @@ def client() -> httpx.Client:
 
 
 def test_health_reaches_backend_through_waf(client: httpx.Client) -> None:
-    response = client.get("/api/health")
-    assert response.status_code == 200
+    response = None
+    for attempt in range(20):
+        response = client.get("/api/health")
+        if response.status_code == 200:
+            break
+        if response.status_code in (502, 503) and attempt < 19:
+            time.sleep(2)
+            continue
+        break
+    assert response is not None
+    assert response.status_code == 200, (
+        f"Traefik/WAF/backend no listo (HTTP {response.status_code}). "
+        "Ejecuta desde la raíz: ./scripts/recreate-waf.sh"
+    )
     body = response.json()
     assert body.get("status") in ("ok", "degraded")
 

@@ -1,4 +1,5 @@
 # Ver `docker/CONVENTIONS.md` para nombres de red, volúmenes y perfiles opcionales.
+name: rag
 
 services:
   traefik:

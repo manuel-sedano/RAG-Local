@@ -23,6 +23,7 @@ upsert() {
 }
 
 # Imagen WAF válida
+upsert COMPOSE_PROJECT_NAME "rag"
 upsert WAF_IMAGE "owasp/modsecurity-crs:4-nginx-alpine-202509220609"
 # Bloqueo CRS (cambiar a DetectionOnly en prod observación)
 upsert WAF_MODE "On"
