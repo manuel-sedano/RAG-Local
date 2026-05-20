@@ -132,6 +132,13 @@ cd backend && source .venv/bin/activate && pytest tests/test_waf_integration.py 
 
 O: `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
 
+**Bloqueo 403:** desde la **raíz del repo** (no desde `backend/`):
+
+```bash
+WAF_MODE=On ./scripts/recreate-waf.sh
+pytest tests/test_waf_integration.py::test_sqli_query_blocked_when_waf_mode_on -v
+```
+
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 
 ```bash

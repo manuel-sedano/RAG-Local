@@ -329,7 +329,18 @@ def status_payload(doc: Document) -> dict[str, Any]:
             "embed": done,
             "qdrant_upsert": done,
         }
-    elif doc.status in (FAILED, QUARANTINED):
+    elif doc.status == QUARANTINED:
+        av_failed = {"status": "FAILED", "duration_ms": 0}
+        stages = {
+            "antivirus": av_failed,
+            "parse": pending,
+            "ocr": skipped,
+            "normalize": pending,
+            "chunk": pending,
+            "embed": pending,
+            "qdrant_upsert": pending,
+        }
+    elif doc.status == FAILED:
         stages = {
             "antivirus": done,
             "parse": pending,

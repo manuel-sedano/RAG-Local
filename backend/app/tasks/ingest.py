@@ -20,6 +20,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import get_settings
 from app.db.session import get_engine
 from app.models.document import Document, DocumentIngestionRun
+from app.services.antivirus import (
+    MalwareDetectedError,
+    ScannerUnavailableError,
+    quarantine_infected_document,
+    scan_upload_path,
+)
+from app.services.antivirus.scan import resolved_antivirus_backend
 from app.services.document_service import absolute_storage_path, resolve_upload_root
 from app.services.chunking import chunk_normalized_text, chunking_config_hash, persist_document_chunks
 from app.services.embeddings import EmbeddingError, embed_document_chunks
@@ -52,6 +59,10 @@ def _get_session_factory() -> sessionmaker[Session]:
 
 class IngestionError(Exception):
     """Error controlado de una etapa del pipeline de ingesta."""
+
+
+class QuarantineError(Exception):
+    """Malware detectado; el documento ya está en cuarentena (sin reintentos)."""
 
 
 def _compute_backoff(attempt: int) -> int:
@@ -87,14 +98,19 @@ def _mark_run_failed(
     run: DocumentIngestionRun,
     error_code: str,
     error_message: str,
+    *,
+    document_status: str | None = None,
 ) -> None:
     run.status = "FAILED"
     run.error_code = error_code
     run.error_message = error_message
     run.finished_at = run.finished_at or run.started_at
-    document.status = "FAILED"
-    document.error_code = error_code
-    document.error_message = error_message
+    if document_status is not None:
+        document.status = document_status
+    elif document.status != "QUARANTINED":
+        document.status = "FAILED"
+        document.error_code = error_code
+        document.error_message = error_message
     session.add(run)
     session.add(document)
     session.commit()
@@ -141,9 +157,32 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
         metrics[f"ingest_{name}_ms"] = round(elapsed_ms, 2)
 
     def antivirus() -> None:
-        if not settings.environment:
-            raise IngestionError("invalid_environment")
-        time.sleep(0)  # placeholder: ClamAV en feat/security-clamav
+        if not settings.clamav_enabled:
+            metrics["antivirus_status"] = "disabled"
+            return
+        file_path = absolute_storage_path(settings, document.storage_path)
+        try:
+            outcome = scan_upload_path(settings, file_path)
+        except MalwareDetectedError as e:
+            engine = resolved_antivirus_backend(settings)
+            quarantine_infected_document(
+                session,
+                settings,
+                document,
+                signature=e.signature,
+                raw_response=e.raw_response,
+                engine=engine,
+            )
+            session.commit()
+            metrics["antivirus_status"] = "infected"
+            metrics["antivirus_signature"] = e.signature
+            raise QuarantineError(e.signature) from e
+        except ScannerUnavailableError as e:
+            raise IngestionError("antivirus_unavailable") from e
+
+        metrics["antivirus_status"] = outcome.status
+        if outcome.engine:
+            metrics["antivirus_engine"] = outcome.engine
 
     def parse() -> None:
         file_path = absolute_storage_path(settings, document.storage_path)
@@ -321,6 +360,20 @@ def ingest_document(self: Task, document_id: str) -> None:
             metrics = _pipeline_ingest_document(session, document)
             _mark_run_succeeded(session, document, run, metrics)
             logger.info("Ingesta de documento %s finalizada con éxito.", document_id)
+        except QuarantineError as e:
+            _mark_run_failed(
+                session,
+                document,
+                run,
+                error_code="malware_detected",
+                error_message=str(e),
+                document_status="QUARANTINED",
+            )
+            logger.warning(
+                "Documento %s puesto en cuarentena (firma=%s).",
+                document_id,
+                e,
+            )
         except IngestionError as e:
             # Errores controlados → reintento con backoff hasta el límite.
             backoff = _compute_backoff(run.attempt)

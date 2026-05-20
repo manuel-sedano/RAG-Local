@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from functools import lru_cache
 from typing import Literal
@@ -141,20 +142,6 @@ class Settings(BaseSettings):
         description="Directorio absoluto o vacío (<raíz repo>/uploads).",
     )
     max_upload_mb: int = Field(default=50, ge=1, le=512)
-    waf_enabled: bool = Field(
-        default=True,
-        description="Habilita el contenedor WAF en despliegues con perfil compose `waf`.",
-    )
-    waf_mode: Literal["DetectionOnly", "On", "Off"] = Field(
-        default="DetectionOnly",
-        description="MODSEC_RULE_ENGINE del contenedor CRS (DetectionOnly | On | Off).",
-    )
-    waf_max_body_bytes: int = Field(
-        default=52_428_800,
-        ge=1024,
-        le=536_870_912,
-        description="Limite de cuerpo de peticion en ModSecurity (MODSEC_REQ_BODY_LIMIT).",
-    )
     allowed_mime_types: str = Field(
         default=(
             "application/pdf,"
@@ -340,6 +327,26 @@ class Settings(BaseSettings):
         description="Directorio cache de modelos FlashRank (vacío = default de la lib).",
     )
 
+    clamav_enabled: bool = Field(
+        default=True,
+        description="Escaneo antivirus en la etapa ingest antes de parse.",
+    )
+    clamav_host: str = Field(default="clamav")
+    clamav_port: int = Field(default=3310, ge=1, le=65535)
+    clamav_timeout_seconds: float = Field(
+        default=120.0,
+        ge=5.0,
+        description="Timeout por conexión INSTREAM a clamd.",
+    )
+    clamav_fail_open: bool = Field(
+        default=False,
+        description="Si clamd no responde, omitir escaneo (solo dev/local).",
+    )
+    clamav_allow_eicar_test: bool = Field(
+        default=False,
+        description="Backend fake en test: detectar cadena EICAR estándar.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -412,6 +419,9 @@ class Settings(BaseSettings):
 
         if self.environment == "test":
             self.celery_task_always_eager = True
+            env_clamav = os.environ.get("CLAMAV_ENABLED", "").strip().lower()
+            if env_clamav not in ("1", "true", "yes", "on"):
+                self.clamav_enabled = False
 
         if self.chunk_overlap_tokens >= self.chunk_size_tokens:
             msg = "CHUNK_OVERLAP_TOKENS debe ser menor que CHUNK_SIZE_TOKENS."

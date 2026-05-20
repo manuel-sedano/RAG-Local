@@ -20,6 +20,12 @@ for i in $(seq 1 60); do
   fi
 done
 
+if [ ! -f backend/app/services/antivirus/clamav.py ]; then
+  echo "ERROR: falta el módulo antivirus. Haz merge de feat/security-clamav o:" >&2
+  echo "  git checkout feat/security-clamav -- backend/app/services/antivirus" >&2
+  exit 1
+fi
+
 echo "==> Test de integración backend (opcional EICAR real)..."
 export TEST_CLAMAV=1
 export CLAMAV_HOST=127.0.0.1

@@ -25,6 +25,7 @@ from app.models.knowledge_base import KbMembership, KnowledgeBase
 from app.models.user import User
 from app.services.passwords import hash_password
 from app.tasks import ingest as ingest_module
+from app.services.antivirus.clamav import EICAR_TEST_SIGNATURE
 from app.tasks.ingest import (
     BASE_BACKOFF_SECONDS,
     MAX_INGEST_ATTEMPTS,
@@ -341,3 +342,38 @@ def test_reindex_endpoint_404_for_unknown_document(
         )
         assert r.status_code == 404
         assert r.json()["error"]["code"] == "DOCUMENT_NOT_FOUND"
+
+
+def test_ingest_eicar_quarantined(
+    ingest_db: tuple,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    SessionLocal, _email, _pwd, _url, _kb_id, doc_id = ingest_db
+    upload_root = tmp_path / "eicar_uploads"
+    upload_root.mkdir(parents=True)
+
+    with SessionLocal() as db:
+        doc = db.get(Document, doc_id)
+        assert doc is not None
+        rel = doc.storage_path
+        eicar_path = upload_root / rel
+        eicar_path.parent.mkdir(parents=True, exist_ok=True)
+        eicar_path.write_bytes(EICAR_TEST_SIGNATURE)
+
+    monkeypatch.setenv("UPLOAD_STORAGE_DIR", str(upload_root))
+    monkeypatch.setenv("CLAMAV_ENABLED", "true")
+    monkeypatch.setenv("CLAMAV_ALLOW_EICAR_TEST", "true")
+    clear_settings_cache()
+
+    ingest_document.run(str(doc_id))
+
+    doc = _reload_document(SessionLocal, doc_id)
+    assert doc.status == "QUARANTINED"
+    assert doc.error_code == "MALWARE_DETECTED"
+    assert len(doc.ingestion_runs) == 1
+    run = doc.ingestion_runs[0]
+    assert run.status == "FAILED"
+    assert run.error_code == "malware_detected"
+    assert doc.storage_path.startswith("quarantine/")
+    assert not (upload_root / rel).is_file()
