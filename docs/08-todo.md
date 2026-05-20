@@ -534,13 +534,13 @@ Reglas:
 
 ### Feature branch: `feat/security-fail2ban`
 
-- [ ] Definir estrategia:
-  - [ ] leer logs de Traefik/WAF/Backend
-  - [ ] patrones: múltiples 401/403/login fail
-- [ ] Docker:
-  - [ ] contenedor fail2ban (si viable en WSL2) o documentación para host-level
-- [ ] Tests:
-  - [ ] simulación de brute-force (manual) y bloqueo de IP (local)
+- [x] ~~Definir estrategia:~~
+  - [x] ~~leer logs de Traefik/WAF/Backend~~ — `docs/17-fail2ban.md`; Traefik `access.log`, backend `SECURITY_ACCESS`.
+  - [x] ~~patrones: múltiples 401/403/login fail~~ — `docker/fail2ban/data/filter.d/`.
+- [x] ~~Docker:~~
+  - [x] ~~contenedor fail2ban (si viable en WSL2) o documentación para host-level~~ — perfil `fail2ban` + `banaction=dummy` (WSL); iptables en Linux en doc.
+- [x] ~~Tests:~~
+  - [x] ~~simulación de brute-force (manual) y bloqueo de IP (local)~~ — `scripts/test-fail2ban.sh`, `tests/test_fail2ban_filters.py`.
 
 ## Feature: prompt injection defense
 

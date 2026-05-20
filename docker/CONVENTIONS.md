@@ -22,9 +22,13 @@ Usar **snake_case** corto, alineado al rol: `traefik`, `frontend`, `backend`, `w
 | `clamav` | Antivirus para escaneo de subidas (arranque lento). |
 | `waf` | ModSecurity CRS entre Traefik y backend (`docker-compose.waf.yml`). |
 | `observability` | Prometheus, Grafana, Loki, Promtail (scrape contenedores con label `logging.promtail=true`). |
+| `fail2ban` | Fail2ban leyendo `rag_vol_traefik_logs` (`docker-compose.fail2ban.yml`). |
+
+Volúmenes relacionados: `rag_vol_traefik_logs`, `rag_vol_fail2ban`.
 
 Ejemplo:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf --profile observability up -d
+docker compose -f docker-compose.yml -f docker-compose.fail2ban.yml --profile fail2ban up -d
 ```

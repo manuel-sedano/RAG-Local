@@ -21,6 +21,10 @@ from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
 from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
 from app.core.rate_limit_middleware import UserRateLimitMiddleware
+from app.core.security_access_log import (
+    SecurityAccessLogMiddleware,
+    configure_security_access_logging,
+)
 from app.db.session import get_engine
 from app.realtime.server import create_socketio_server
 
@@ -31,6 +35,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings)
+    configure_security_access_logging(settings)
     engine = get_engine()
     app.state.db_engine = engine
     app.state.db_session_factory = sessionmaker(
@@ -80,6 +85,8 @@ def create_app() -> FastAPI:
 
     application.add_middleware(RequestIdMiddleware)
     application.add_middleware(UserRateLimitMiddleware)
+    if settings.fail2ban_security_log_enabled:
+        application.add_middleware(SecurityAccessLogMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,

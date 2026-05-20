@@ -70,6 +70,15 @@ class Settings(BaseSettings):
         description="Persistir filas en rate_limit_events al devolver 429.",
     )
 
+    fail2ban_security_log_enabled: bool = Field(
+        default=True,
+        description="Middleware SECURITY_ACCESS en respuestas 401/403/429 de /api.",
+    )
+    fail2ban_security_log_path: str = Field(
+        default="",
+        description="Ruta opcional a archivo (p. ej. /var/log/rag/security-access.log en Docker).",
+    )
+
     database_url: str = Field(
         default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
         repr=False,

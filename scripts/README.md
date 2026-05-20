@@ -12,6 +12,7 @@ Comandos pensados para **WSL / bash**. En Windows puedes ejecutarlos con `bash s
 | `sync-env-security.sh` | Alinea `.env` y `backend/.env` (WAF, ClamAV, rate limits). |
 | `ensure-test-infra.sh` | Espera Postgres/Redis y crea `rag_test`; exporta `TEST_DATABASE_URL`. |
 | `test-rate-limits.sh` | Smoke: Traefik + login 429; opcional `RUN_RATE_LIMIT_PYTEST=1`. |
+| `test-fail2ban.sh` | Smoke Fail2ban (perfil `fail2ban`, brute-force simulado, status jail). |
 | `backend/scripts/*.sh` | Wrappers para ejecutar los scripts anteriores desde `backend/`. |
 | `test-waf.sh` | Smoke del WAF ModSecurity. |
 | `test-clamav.sh` | Smoke de ClamAV en ingesta. |

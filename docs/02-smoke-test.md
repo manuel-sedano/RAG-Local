@@ -204,14 +204,26 @@ Traefik aplica `rag-ratelimit-login` (~10/min) y `rag-ratelimit-api` (~200/min) 
 
 ---
 
-## 9. Seguridad local
+## 9. Fail2ban (perfil opcional)
+
+```bash
+bash scripts/sync-env-security.sh
+docker compose -f docker-compose.yml -f docker-compose.fail2ban.yml --profile fail2ban up -d
+bash scripts/test-fail2ban.sh
+```
+
+En WSL2 el `banaction` es **dummy** (registra baneos sin iptables). Detalle: `docs/17-fail2ban.md`.
+
+---
+
+## 10. Seguridad local
 
 - Cambia `POSTGRES_PASSWORD` y credenciales de Grafana antes de exponer la máquina a una red no confiable (p. ej. vía variables de entorno y override de Compose en una fase posterior).
 - No subas `.env` al repositorio (ya ignorado en `.gitignore`).
 
 ---
 
-## 10. Parada
+## 11. Parada
 
 ```bash
 docker compose down

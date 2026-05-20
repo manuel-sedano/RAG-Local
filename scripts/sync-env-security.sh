@@ -49,6 +49,13 @@ upsert AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE "15"
 # Contraseña alineada con docker-compose.yml (evita skips en pytest)
 upsert POSTGRES_PASSWORD "rag_local_dev"
 
+# Fail2ban (perfil docker; dummy en WSL2)
+upsert FAIL2BAN_ENABLED "true"
+upsert FAIL2BAN_PROFILE "fail2ban"
+upsert FAIL2BAN_BANACTION "dummy"
+upsert FAIL2BAN_SECURITY_LOG_ENABLED "true"
+# FAIL2BAN_SECURITY_LOG_PATH=/var/log/rag/security-access.log
+
 # backend/.env (uvicorn local): mismas vars de seguridad para tests
 BACKEND_ENV="${ROOT}/backend/.env"
 if [[ -f "${BACKEND_ENV}" ]]; then
@@ -56,7 +63,8 @@ if [[ -f "${BACKEND_ENV}" ]]; then
     APP_RATE_LIMIT_ENABLED APP_RATE_LIMIT_PER_MINUTE \
     INGEST_UPLOAD_MAX_PER_USER_PER_MINUTE INGEST_UPLOAD_MAX_PER_KB_PER_MINUTE \
     RATE_LIMIT_AUDIT_ENABLED AUTH_LOGIN_MAX_ATTEMPTS_PER_IP_PER_MINUTE \
-    AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE; do
+    AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE \
+    FAIL2BAN_ENABLED FAIL2BAN_SECURITY_LOG_ENABLED; do
     val="$(grep "^${key}=" "${ENV_FILE}" | cut -d= -f2- || true)"
     if [[ -n "${val}" ]]; then
       if grep -q "^${key}=" "${BACKEND_ENV}" 2>/dev/null; then
@@ -69,4 +77,4 @@ if [[ -f "${BACKEND_ENV}" ]]; then
   echo "OK: backend/.env alineado (WAF_MODE, CLAMAV_*)."
 fi
 
-echo "OK: .env actualizado (WAF, ClamAV, rate limits, COMPOSE_PROJECT_NAME=rag)."
+echo "OK: .env actualizado (WAF, ClamAV, rate limits, Fail2ban, COMPOSE_PROJECT_NAME=rag)."
