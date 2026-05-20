@@ -1,0 +1,5 @@
+# Evitar CRLF en plantillas de entorno (rompen `source .env` en bash/WSL).
+.env.example text eol=lf
+backend/.env.example text eol=lf
+frontend/.env.local text eol=lf
+*.sh text eol=lf

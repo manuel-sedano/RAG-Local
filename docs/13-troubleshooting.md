@@ -267,6 +267,29 @@ docker compose down -v
 docker compose up -d
 ```
 
+### Síntoma: ingesta `FAILED` con `qdrant_dimension_mismatch`
+
+**Causa**
+
+La colección `QDRANT_COLLECTION` (p. ej. `rag_chunks_v1`) se creó con un modelo de embeddings de **otra dimensión** (típico: pruebas con `EMBEDDING_BACKEND=fake` → 64 dims) y ahora usas **BGE-M3** u otro modelo (p. ej. **1024** dims).
+
+**Solución (dev local)**
+
+1. Borra la colección y reindexa:
+
+```bash
+bash scripts/reset-qdrant-collection.sh
+```
+
+2. Con el worker en marcha, **reindexa** cada PDF (`POST .../documents/{id}/reindex` o botón en UI).
+
+3. Comprueba que el documento pase a `READY` y que `embed` / `qdrant_upsert` estén en DONE.
+
+**Prevención**
+
+- No mezclar `fake` y `sentence_transformers` sobre la misma colección Qdrant sin reset.
+- En `.env` deja fijo `EMBEDDING_MODEL_NAME=BAAI/bge-m3` y `EMBEDDING_BACKEND=auto` (o `sentence_transformers`).
+
 ### Síntoma: Retrieval no encuentra nada aunque hay documentos “READY”
 
 **Diagnóstico**
