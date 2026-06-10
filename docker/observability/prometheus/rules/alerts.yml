@@ -1,0 +1,37 @@
+groups:
+  - name: rag-local-alerts
+    rules:
+      - alert: RagHighHttp5xxRate
+        expr: |
+          (
+            sum(rate(rag_http_requests_total{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(rag_http_requests_total[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de errores 5xx en la API RAG"
+          description: "Más del 5% de peticiones HTTP devuelven 5xx en los últimos 5 minutos."
+
+      - alert: RagBackendMetricsDown
+        expr: up{job="rag-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend RAG sin métricas (scrape caído)"
+          description: "Prometheus no puede scrapear host.docker.internal:8000/metrics."
+
+      - alert: RagPostgresHealthDown
+        expr: |
+          sum(rate(rag_http_requests_total{endpoint="/api/health",status="503"}[5m])) > 0
+          and
+          sum(rate(rag_http_requests_total{endpoint="/api/health"}[5m])) > 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health check degradado (posible dependencia caída)"
+          description: "El endpoint /api/health devuelve 503 de forma sostenida."

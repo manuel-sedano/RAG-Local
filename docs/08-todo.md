@@ -585,14 +585,14 @@ Reglas:
 
 ### Feature branch: `feat/observability-logs`
 
-- [ ] Logs:
-  - [ ] formato estructurado
-  - [ ] correlación por `request_id`, `document_id`, `chat_id`
-- [ ] Loki:
-  - [ ] promtail o driver para enviar logs
-  - [ ] queries guardadas para debugging
-- [ ] Alertas (opcional):
-  - [ ] reglas simples: alta tasa de 5xx, dependencia caída
+- [x] ~~Logs:~~
+  - [x] ~~formato estructurado~~ — JSON en `logging_config.py` + `http_access` en `access_log_middleware.py`.
+  - [x] ~~correlación por `request_id`, `document_id`, `chat_id`~~ — `log_context.py`, `correlation_middleware.py`, ingesta/worker.
+- [x] ~~Loki:~~
+  - [x] ~~promtail o driver para enviar logs~~ — `promtail-config.yml` (Docker labels + `uploads/logs/*.jsonl`); labels en compose.
+  - [x] ~~queries guardadas para debugging~~ — dashboard `rag-logs.json` + panel de queries en Grafana.
+- [x] ~~Alertas (opcional):~~
+  - [x] ~~reglas simples: alta tasa de 5xx, dependencia caída~~ — `docker/observability/prometheus/rules/alerts.yml`.
 
 ---
 

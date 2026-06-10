@@ -196,8 +196,18 @@ docker compose --profile observability up -d
 - **Loki** (solo interno en este bootstrap):
 
   ```bash
-  docker compose exec backend wget -qO- http://loki:3100/ready
+  docker compose exec loki wget -qO- http://127.0.0.1:3100/ready
   ```
+
+- **Logs estructurados** (JSON → `uploads/logs/*.jsonl` → Promtail → Loki):
+
+  ```bash
+  curl -fsS http://127.0.0.1:8000/api/health
+  tail -n 1 uploads/logs/rag-backend.jsonl
+  bash scripts/test-observability-logs.sh
+  ```
+
+  En Grafana: dashboard **RAG Local — Logs**. Query por `request_id`: `{job="rag-app-files"} | json | request_id="<uuid>"`.
 
 ---
 

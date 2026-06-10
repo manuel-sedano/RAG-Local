@@ -270,6 +270,20 @@ GRAFANA_ADMIN_PASSWORD=admin_local_change_me
 
 **Scrape (Docker):** Prometheus en el perfil `observability` apunta a `host.docker.internal:8000` (API) y `:8001` (worker). Arranca uvicorn y el worker Celery en el host antes del smoke (`bash scripts/test-observability.sh`).
 
+### Logs estructurados (Loki)
+
+```bash
+LOG_JSON_ENABLED=true
+LOG_ACCESS_ENABLED=true
+LOG_SERVICE_NAME=rag-backend
+LOG_FILE_ENABLED=true
+LOG_FILE_DIR=uploads/logs
+```
+
+- Los JSONL en `uploads/logs/` los recoge Promtail (`/var/log/rag` en el contenedor).
+- Worker local: `LOG_SERVICE_NAME=rag-worker` (ya exportado en `scripts/run-celery-worker.sh`).
+- Smoke: `bash scripts/test-observability-logs.sh` (con API en `:8000`).
+
 ---
 
 ## Tests backend (pytest / `TEST_DATABASE_URL`)
