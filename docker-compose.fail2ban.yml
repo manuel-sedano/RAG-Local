@@ -1,0 +1,33 @@
+# Fail2ban: lee logs de Traefik (y opcional backend) y banea IPs abusivas.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.fail2ban.yml --profile fail2ban up -d
+#
+# WSL2 / Docker Desktop: usar FAIL2BAN_BANACTION=dummy (sin iptables real).
+# Linux (host): FAIL2BAN_BANACTION=iptables-multiport y network_mode: host (ver docs/17-fail2ban.md).
+
+services:
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: rag_fail2ban
+    profiles:
+      - fail2ban
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      TZ: UTC
+      F2B_LOG_LEVEL: INFO
+      F2B_DB_PURGE_AGE: 1d
+    volumes:
+      - ./docker/fail2ban/data:/data
+      - rag_vol_traefik_logs:/var/log/traefik:ro
+      - rag_vol_fail2ban:/var/lib/fail2ban
+    depends_on:
+      traefik:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "fail2ban-client ping || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 45s

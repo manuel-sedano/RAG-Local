@@ -54,6 +54,17 @@ PASSWORD_PEPPER=REEMPLAZAR_POR_OTRO_SECRETO_LARGO
 # Rate limiting en backend (por usuario/endpoint)
 APP_RATE_LIMIT_ENABLED=true
 APP_RATE_LIMIT_PER_MINUTE=120
+INGEST_UPLOAD_MAX_PER_USER_PER_MINUTE=10
+INGEST_UPLOAD_MAX_PER_KB_PER_MINUTE=20
+RATE_LIMIT_AUDIT_ENABLED=true
+AUTH_LOGIN_MAX_ATTEMPTS_PER_IP_PER_MINUTE=30
+AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE=15
+
+# Fail2ban (perfil Compose `fail2ban`; banaction dummy en WSL2)
+FAIL2BAN_ENABLED=true
+FAIL2BAN_PROFILE=fail2ban
+FAIL2BAN_BANACTION=dummy
+FAIL2BAN_SECURITY_LOG_ENABLED=true
 
 # Tamaño máximo de upload (MB)
 MAX_UPLOAD_MB=50
@@ -227,9 +238,11 @@ CLAMAV_ENABLED=true
 CLAMAV_HOST=clamav
 CLAMAV_PORT=3310
 
-# WAF (si se usa contenedor separado)
+# WAF (docker-compose.waf.yml + --profile waf)
 WAF_ENABLED=true
 WAF_MODE=DetectionOnly
+WAF_MAX_BODY_BYTES=52428800
+WAF_IMAGE=owasp/modsecurity-crs:4-nginx-alpine-202509220609
 
 # Traefik (rutas/hosts locales)
 TRAEFIK_DASHBOARD_ENABLED=false
@@ -243,13 +256,33 @@ TRAEFIK_DASHBOARD_ENABLED=false
 OBSERVABILITY_ENABLED=true
 
 PROMETHEUS_ENABLED=true
+PROMETHEUS_METRICS_PATH=/metrics
+PROMETHEUS_INCLUDE_KB_ID_LABEL=false
+WORKER_PROMETHEUS_PORT=8001
+
 GRAFANA_ENABLED=true
 LOKI_ENABLED=true
 
-# Credenciales Grafana (cámbialas)
+# Credenciales Grafana (cámbialas; usadas por docker-compose en perfil observability)
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=admin_local_change_me
 ```
+
+**Scrape (Docker):** Prometheus en el perfil `observability` apunta a `host.docker.internal:8000` (API) y `:8001` (worker). Arranca uvicorn y el worker Celery en el host antes del smoke (`bash scripts/test-observability.sh`).
+
+### Logs estructurados (Loki)
+
+```bash
+LOG_JSON_ENABLED=true
+LOG_ACCESS_ENABLED=true
+LOG_SERVICE_NAME=rag-backend
+LOG_FILE_ENABLED=true
+LOG_FILE_DIR=uploads/logs
+```
+
+- Los JSONL en `uploads/logs/` los recoge Promtail (`/var/log/rag` en el contenedor).
+- Worker local: `LOG_SERVICE_NAME=rag-worker` (ya exportado en `scripts/run-celery-worker.sh`).
+- Smoke: `bash scripts/test-observability-logs.sh` (con API en `:8000`).
 
 ---
 

@@ -32,7 +32,8 @@ Los archivos numerados reflejan el **orden de lectura recomendado**. Este `READM
 
 ## Seguridad, operación y negocio
 
-12. **`12-security.md`** — Amenazas, uploads, WAF, rate limits, JWT, etc.
+12. **`12-security.md`** — Amenazas, uploads, WAF, rate limits, JWT, etc.  
+    **`17-fail2ban.md`** — Fail2ban (Traefik logs, perfil Docker, WSL vs Linux).
 13. **`13-troubleshooting.md`** — Fallos frecuentes (WSL2, Docker, memoria, rendimiento).
 14. **`14-comercializacion-mvp-precios.md`** — Referencia comercial / pricing (no bloquea técnica).
 

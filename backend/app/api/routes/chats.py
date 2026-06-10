@@ -15,6 +15,7 @@ from app.core.config import Settings, get_settings
 from app.models.chat import Chat, ChatMessage, MessageCitation
 from app.models.user import User
 from app.services.chat import RagRequestConfig, generate_chat_reply
+from app.services.chat.prompt_guards import assess_user_query, build_safety_flags
 from app.services.chat.streaming import schedule_chat_stream_task
 from app.services.chat_paths import build_file_path, build_viewer_path
 from app.services.chat_service import (
@@ -83,12 +84,20 @@ class CitationResponse(BaseModel):
     file_path: str
 
 
+class SafetyFlagsResponse(BaseModel):
+    user_query_blocked: bool | None = None
+    ignored_chunks: int | None = None
+    user_notice: str | None = None
+    reasons: list[str] | None = None
+
+
 class MessageItemResponse(BaseModel):
     id: uuid.UUID
     role: str
     content: str
     created_at: str
     citations: list[CitationResponse] | None = None
+    safety_flags: SafetyFlagsResponse | None = None
 
 
 class MessageListResponse(BaseModel):
@@ -127,6 +136,7 @@ class PostMessageResponse(BaseModel):
     content: str
     citations: list[CitationResponse]
     usage: MessageUsageResponse | None = None
+    safety_flags: SafetyFlagsResponse | None = None
 
 
 class PostMessageStreamResponse(BaseModel):
@@ -210,6 +220,22 @@ def _citations_for_message(
     return [_citation_to_response(kb_id, c) for c in citations]
 
 
+def _safety_flags_to_response(flags: dict | None) -> SafetyFlagsResponse | None:
+    if not flags:
+        return None
+    reasons = flags.get("reasons")
+    if isinstance(reasons, list):
+        reason_list = [str(r) for r in reasons]
+    else:
+        reason_list = None
+    return SafetyFlagsResponse(
+        user_query_blocked=flags.get("user_query_blocked"),
+        ignored_chunks=flags.get("ignored_chunks"),
+        user_notice=flags.get("user_notice"),
+        reasons=reason_list,
+    )
+
+
 def _message_to_item(kb_id: uuid.UUID, msg: ChatMessage) -> MessageItemResponse:
     citations: list[CitationResponse] | None = None
     if msg.role == "assistant" and msg.citations:
@@ -220,6 +246,7 @@ def _message_to_item(kb_id: uuid.UUID, msg: ChatMessage) -> MessageItemResponse:
         content=msg.content,
         created_at=_iso_z(msg.created_at),
         citations=citations,
+        safety_flags=_safety_flags_to_response(msg.safety_flags),
     )
 
 
@@ -294,6 +321,38 @@ async def post_chat_message(
         raise _chat_not_found()
 
     if body.stream:
+        user_guard = assess_user_query(body.content, settings)
+        if user_guard.blocked:
+            user_msg = ChatMessage(chat_id=chat.id, role="user", content=body.content)
+            db.add(user_msg)
+            db.flush()
+            refusal = user_guard.refusal_message or (
+                "No puedo ayudar con esa solicitud por políticas de seguridad."
+            )
+            flags = build_safety_flags(user_guard=user_guard)
+            assistant_msg = ChatMessage(
+                chat_id=chat.id,
+                role="assistant",
+                content=refusal,
+                model=settings.llm_model,
+                safety_flags=flags,
+            )
+            db.add(assistant_msg)
+            db.flush()
+            touch_chat_updated_at(db, chat)
+            db.commit()
+            return PostMessageResponse(
+                message_id=assistant_msg.id,
+                role="assistant",
+                content=refusal,
+                citations=[],
+                usage=MessageUsageResponse(
+                    prompt_tokens=0,
+                    completion_tokens=max(1, len(refusal) // 4),
+                ),
+                safety_flags=_safety_flags_to_response(flags),
+            )
+
         user_msg = ChatMessage(chat_id=chat.id, role="user", content=body.content)
         db.add(user_msg)
         db.flush()
@@ -361,4 +420,5 @@ async def post_chat_message(
         content=result.assistant_message.content,
         citations=_citations_for_message(kb_id, result.citations),
         usage=usage_resp,
+        safety_flags=_safety_flags_to_response(result.assistant_message.safety_flags),
     )

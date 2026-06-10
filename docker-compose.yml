@@ -1,4 +1,5 @@
 # Ver `docker/CONVENTIONS.md` para nombres de red, volúmenes y perfiles opcionales.
+name: rag
 
 services:
   traefik:
@@ -11,10 +12,16 @@ services:
     volumes:
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+      - rag_vol_traefik_logs:/var/log/traefik
     networks:
       - rag_net
-    command:
-      - --configFile=/etc/traefik/traefik.yml
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /var/log/traefik
+        touch /var/log/traefik/access.log
+        exec traefik --configFile=/etc/traefik/traefik.yml
 
   frontend:
     build:
@@ -39,6 +46,8 @@ services:
     networks:
       - rag_net
     labels:
+      - logging.promtail=true
+      - logging.job=rag-backend
       - traefik.enable=true
       - traefik.docker.network=rag_net
       - traefik.http.routers.backend.rule=PathPrefix(`/api`)
@@ -53,6 +62,9 @@ services:
     restart: unless-stopped
     networks:
       - rag_net
+    labels:
+      - logging.promtail=true
+      - logging.job=rag-worker
     volumes:
       - rag_vol_uploads:/uploads
 
@@ -71,6 +83,7 @@ services:
       POSTGRES_DB: rag
     volumes:
       - rag_vol_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rag -d rag"]
       interval: 5s
@@ -125,10 +138,18 @@ services:
     profiles:
       - clamav
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3310:3310"
     networks:
       - rag_net
     volumes:
       - rag_vol_clamav:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 300s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:v2.52.0
@@ -136,10 +157,13 @@ services:
     profiles:
       - observability
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - rag_net
     volumes:
       - ./docker/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/observability/prometheus/rules:/etc/prometheus/rules:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
@@ -163,13 +187,14 @@ services:
     networks:
       - rag_net
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin_local_dev
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_local_dev}
       GF_SERVER_ROOT_URL: http://localhost/grafana/
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - rag_vol_grafana:/var/lib/grafana
       - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/observability/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
     depends_on:
       - prometheus
       - loki
@@ -178,8 +203,7 @@ services:
       - traefik.docker.network=rag_net
       - traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)
       - traefik.http.routers.grafana.entrypoints=web
-      - traefik.http.middlewares.grafana-strip.stripprefix.prefixes=/grafana
-      - traefik.http.routers.grafana.middlewares=grafana-strip
+      # Sin stripprefix: Grafana usa GF_SERVER_SERVE_FROM_SUB_PATH con prefijo /grafana
       - traefik.http.services.grafana.loadbalancer.server.port=3000
 
   loki:
@@ -193,12 +217,31 @@ services:
     command:
       - -config.file=/etc/loki/local-config.yaml
 
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: rag_promtail
+    profiles:
+      - observability
+    restart: unless-stopped
+    networks:
+      - rag_net
+    volumes:
+      - ./docker/observability/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./uploads/logs:/var/log/rag:ro
+    command:
+      - -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
 networks:
   rag_net:
     name: rag_net
-    driver: bridge
+    external: true
 
 volumes:
+  rag_vol_traefik_logs:
+  rag_vol_fail2ban:
   rag_vol_postgres:
   rag_vol_qdrant:
   rag_vol_ollama:

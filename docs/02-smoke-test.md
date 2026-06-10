@@ -94,48 +94,178 @@ Debe mostrarse el fichero `.smoke` (prueba de escritura en el volumen nombrado).
 Primer arranque puede tardar varios minutos (bases de firmas).
 
 ```bash
-docker compose --profile clamav up -d
-docker compose ps clamav
+docker compose --profile clamav up -d clamav
+./scripts/test-clamav.sh
 ```
 
-Comprobar que el contenedor `rag_clamav` pasa a estado healthy o running estable según la imagen.
+Comprobar que `rag_clamav` pasa a **healthy** (la primera descarga de firmas puede tardar varios minutos).
+
+**pytest:** usa `backend/.venv`, no el `venv` de la raíz del repo:
+
+```bash
+cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
+```
 
 ---
 
+## 7b. Perfil **waf** (ModSecurity CRS)
+
+Requiere el override `docker-compose.waf.yml` y la imagen `WAF_IMAGE` (tag con fecha en `.env`).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
+./scripts/test-waf.sh
+```
+
+**502 en `/api/health` tras `docker compose up --build`:** el WAF cachea la IP de `backend` al arrancar. Si solo recreas `rag_backend`, reinicia el WAF:
+
+```bash
+bash scripts/restart-waf-after-backend.sh
+# o recreación completa:
+./scripts/recreate-waf.sh
+```
+WAF_MODE=On ./scripts/test-waf.sh
+```
+
+- `curl -fsS http://localhost/api/health` debe responder JSON del backend.
+- Con `WAF_MODE=On`, un payload SQLi en query string debe devolver `403`.
+- Logs de auditoría ModSecurity: `docker logs rag_waf` (o Loki con `--profile observability`; Promtail está en `docker-compose.yml`).
+
+**pytest opcional:**
+
+```bash
+export TEST_WAF_BASE_URL=http://localhost
+export WAF_MODE=On   # solo para test_sqli_query_blocked_when_waf_mode_on
+cd backend && source .venv/bin/activate && pytest tests/test_waf_integration.py -v
+```
+
+O: `RUN_WAF_PYTEST=1 ./scripts/test-waf.sh` (con WAF levantado y `backend/.venv`).
+
+**Bloqueo 403:** desde la **raíz del repo** (no desde `backend/`):
+
+```bash
+./scripts/docker-rag-clean.sh   # si hay conflictos rag_backend / rag_worker
+./scripts/sync-env-security.sh  # WAF_MODE=On en .env y backend/.env
+WAF_MODE=On ./scripts/recreate-waf.sh
+cd backend && source .venv/bin/activate
+export TEST_WAF_BASE_URL=http://localhost
+pytest tests/test_waf_integration.py -v
+```
+
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
+
+**Backend real en host:** Prometheus scrapea `host.docker.internal:8000/metrics` (API uvicorn) y `:8001/metrics` (worker Celery). Arranca la API antes del smoke:
+
+```bash
+cd backend && source .venv/bin/activate
+uvicorn app.main:asgi_application --host 0.0.0.0 --port 8000
+```
+
+Smoke automatizado:
+
+```bash
+bash scripts/test-observability.sh
+# Con pytest: RUN_OBSERVABILITY_PYTEST=1 bash scripts/test-observability.sh
+```
 
 ```bash
 docker compose --profile observability up -d
 ```
 
+- **Métricas API** (`GET /metrics`):
+
+  ```bash
+  curl -fsS http://127.0.0.1:8000/metrics | head
+  ```
+
+  Debe incluir series `rag_http_requests_total`, `rag_ingest_stage_duration_seconds`, etc.
+
 - **Prometheus** (UI detrás de Traefik):
 
   ```bash
   curl -fsSI http://localhost/prometheus/
+  curl -fsS http://localhost/prometheus/api/v1/targets | head -c 500
   ```
 
-  Respuesta `200` o `302` a la UI.
+  Respuesta `200` o `302` a la UI; targets `rag-backend` / `rag-worker` en `up` si el backend/worker exponen métricas en el host.
 
 - **Grafana** (subruta `/grafana/`):
 
-  Abre en el navegador `http://localhost/grafana/` (usuario/contraseña por defecto del compose: `admin` / `admin_local_dev`; **cámbialos** fuera de entornos locales).
+  Abre `http://localhost/grafana/` (credenciales desde `.env`: `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`). Dashboard provisionado: **RAG Local — Overview**.
 
 - **Loki** (solo interno en este bootstrap):
 
   ```bash
-  docker compose exec backend wget -qO- http://loki:3100/ready
+  docker compose exec loki wget -qO- http://127.0.0.1:3100/ready
   ```
+
+- **Logs estructurados** (JSON → `uploads/logs/*.jsonl` → Promtail → Loki):
+
+  ```bash
+  curl -fsS http://127.0.0.1:8000/api/health
+  tail -n 1 uploads/logs/rag-backend.jsonl
+  bash scripts/test-observability-logs.sh
+  ```
+
+  En Grafana: dashboard **RAG Local — Logs**. Query por `request_id`: `{job="rag-app-files"} | json | request_id="<uuid>"`.
 
 ---
 
-## 8. Seguridad local
+## 8. Rate limits (Traefik + backend)
+
+**Importante:** los scripts viven en `scripts/` en la **raíz del repo**, no dentro de `backend/`. Desde `backend/` puedes usar los wrappers `backend/scripts/*.sh`.
+
+Con el backend real (no placeholder) y Redis activo:
+
+```bash
+cd ~/projects/rag-local
+bash scripts/sync-env-security.sh
+docker compose up -d postgres redis traefik backend
+bash scripts/test-rate-limits.sh
+```
+
+Pruebas automáticas (Postgres debe estar arriba **antes** de pytest):
+
+```bash
+cd ~/projects/rag-local
+docker compose up -d postgres redis
+source scripts/ensure-test-infra.sh   # crea rag + rag_test; exporta TEST_DATABASE_URL
+cd backend && source .venv/bin/activate
+pytest -q tests/test_rate_limit_unit.py tests/test_rate_limit_integration.py
+```
+
+Si ves `database "rag" does not exist`, el script actualizado crea `rag` y `rag_test` conectando a la base admin `postgres`.
+
+O todo en uno con smoke + pytest:
+
+```bash
+RUN_RATE_LIMIT_PYTEST=1 bash scripts/test-rate-limits.sh
+```
+
+Traefik aplica `rag-ratelimit-login` (~10/min) y `rag-ratelimit-api` (~200/min) en `docker/traefik/dynamic/bootstrap.yml`.
+
+---
+
+## 9. Fail2ban (perfil opcional)
+
+```bash
+bash scripts/sync-env-security.sh
+docker compose -f docker-compose.yml -f docker-compose.fail2ban.yml --profile fail2ban up -d
+bash scripts/test-fail2ban.sh
+```
+
+En WSL2 el `banaction` es **dummy** (registra baneos sin iptables). Detalle: `docs/17-fail2ban.md`.
+
+---
+
+## 10. Seguridad local
 
 - Cambia `POSTGRES_PASSWORD` y credenciales de Grafana antes de exponer la máquina a una red no confiable (p. ej. vía variables de entorno y override de Compose en una fase posterior).
 - No subas `.env` al repositorio (ya ignorado en `.gitignore`).
 
 ---
 
-## 9. Parada
+## 11. Parada
 
 ```bash
 docker compose down

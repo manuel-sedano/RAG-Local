@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -25,6 +26,11 @@ from app.services.chat.generation import (
     _persist_citations,
 )
 from app.services.chat.intent import is_conversational_message
+from app.services.chat.prompt_guards import (
+    assess_user_query,
+    build_safety_flags,
+    filter_search_hits,
+)
 from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import get_chat_for_kb, touch_chat_updated_at
 from app.services.ollama import (
@@ -35,6 +41,7 @@ from app.services.ollama import (
     generate_chat_token_pieces,
 )
 from app.services.ollama.fake import fake_chat_completion
+from app.observability.metrics import observe_chat_phase, record_chat_message
 from app.services.retrieval import hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -50,6 +57,8 @@ class StreamPrepResult:
     valid_hits: list
     top_k: int
     rag_hybrid: bool | None
+    safety_flags: dict | None = None
+    ignored_chunk_count: int = 0
 
 
 @dataclass
@@ -149,11 +158,16 @@ def run_chat_stream_prepare_sync(
 
     content = user_content.strip()
     top_k = _effective_top_k(settings, rag)
+    safety_flags: dict | None = None
+    ignored_chunk_count = 0
 
+    retrieval_start = time.perf_counter()
     if is_conversational_message(content):
-        hits = []
+        chunk_guard = filter_search_hits([], settings)
         valid_hits: list = []
         page_map = {}
+        if settings.prometheus_enabled:
+            observe_chat_phase("retrieval", time.perf_counter() - retrieval_start, status="skipped")
     else:
         search_result = hybrid_search(
             session,
@@ -165,13 +179,17 @@ def run_chat_stream_prepare_sync(
             hybrid=rag.hybrid if rag else None,
             rerank=True,
         )
-        hits = search_result.hits
-        page_map = _load_chunk_pages(session, hits)
-        valid_hits = [h for h in hits if h.chunk_id in page_map]
-        if len(valid_hits) < len(hits):
+        chunk_guard = filter_search_hits(search_result.hits, settings)
+        if settings.prometheus_enabled:
+            observe_chat_phase("retrieval", time.perf_counter() - retrieval_start, status="ok")
+        ignored_chunk_count = len(chunk_guard.ignored_chunk_ids)
+        safety_flags = build_safety_flags(chunk_guard=chunk_guard)
+        page_map = _load_chunk_pages(session, chunk_guard.safe_hits)
+        valid_hits = [h for h in chunk_guard.safe_hits if h.chunk_id in page_map]
+        if len(valid_hits) < len(chunk_guard.safe_hits):
             logger.warning(
                 "Se omitieron %s hits sin chunk en Postgres (chat_id=%s)",
-                len(hits) - len(valid_hits),
+                len(chunk_guard.safe_hits) - len(valid_hits),
                 chat_id,
             )
 
@@ -236,6 +254,8 @@ def run_chat_stream_prepare_sync(
         valid_hits=valid_hits,
         top_k=top_k,
         rag_hybrid=rag.hybrid if rag else None,
+        safety_flags=safety_flags,
+        ignored_chunk_count=ignored_chunk_count,
     )
 
 
@@ -257,8 +277,10 @@ def run_chat_stream_finalize_sync(
         "top_k": prep.top_k,
         "hybrid": prep.rag_hybrid,
         "hit_count": len(prep.valid_hits),
+        "ignored_chunks": prep.ignored_chunk_count,
         "stream": True,
     }
+    assistant_msg.safety_flags = prep.safety_flags
     _, usage = fake_chat_completion(
         settings,
         user_query=prep.user_query,
@@ -275,12 +297,21 @@ async def _stream_llm_and_emit(
     prep: StreamPrepResult,
 ) -> list[str]:
     tokens: list[str] = []
+    llm_start = time.perf_counter()
+    first_token_recorded = False
     async for piece in _iter_llm_token_pieces(
         settings,
         messages=prep.messages,
         user_query=prep.user_query,
         hits=prep.valid_hits,
     ):
+        if settings.prometheus_enabled and not first_token_recorded:
+            observe_chat_phase(
+                "llm_first_token",
+                time.perf_counter() - llm_start,
+                status="ok",
+            )
+            first_token_recorded = True
         tokens.append(piece)
         await emit_chat_token(
             sio,
@@ -288,6 +319,9 @@ async def _stream_llm_and_emit(
             message_id=prep.message_id,
             token=piece,
         )
+    if settings.prometheus_enabled:
+        observe_chat_phase("llm_total", time.perf_counter() - llm_start, status="ok")
+        record_chat_message(mode="stream", status="ok")
     return tokens
 
 

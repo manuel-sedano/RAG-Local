@@ -1,0 +1,83 @@
+# Traefik con WAF delante del backend (perfil `waf` + docker-compose.waf.yml).
+# `/socket.io` sigue yendo directo al backend (WebSocket; sin inspección CRS en uploads).
+http:
+  routers:
+    rag-socketio:
+      rule: PathPrefix(`/socket.io`)
+      entryPoints:
+        - web
+      service: rag-backend-direct-svc
+      priority: 110
+    rag-auth-login:
+      rule: Path(`/api/auth/login`) && Method(`POST`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-ratelimit-login
+      service: rag-backend-waf-svc
+      priority: 105
+    rag-backend:
+      rule: PathPrefix(`/api`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-ratelimit-api
+      service: rag-backend-waf-svc
+      priority: 100
+    rag-prometheus:
+      rule: PathPrefix(`/prometheus`)
+      entryPoints:
+        - web
+      middlewares:
+        - rag-prometheus-stripprefix
+      service: rag-prometheus-svc
+      priority: 80
+    rag-grafana:
+      rule: PathPrefix(`/grafana`)
+      entryPoints:
+        - web
+      service: rag-grafana-svc
+      priority: 80
+    rag-frontend:
+      rule: PathPrefix(`/`)
+      entryPoints:
+        - web
+      service: rag-frontend-svc
+      priority: 1
+
+  middlewares:
+    rag-ratelimit-login:
+      rateLimit:
+        average: 10
+        burst: 3
+        period: 1m
+    rag-ratelimit-api:
+      rateLimit:
+        average: 200
+        burst: 50
+        period: 1m
+    rag-prometheus-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /prometheus
+  services:
+    rag-backend-waf-svc:
+      loadBalancer:
+        servers:
+          - url: http://waf:8080
+    rag-backend-direct-svc:
+      loadBalancer:
+        servers:
+          - url: http://backend:80
+    rag-frontend-svc:
+      loadBalancer:
+        servers:
+          - url: http://frontend:80
+    rag-prometheus-svc:
+      loadBalancer:
+        servers:
+          - url: http://prometheus:9090
+    rag-grafana-svc:
+      loadBalancer:
+        servers:
+          - url: http://grafana:3000

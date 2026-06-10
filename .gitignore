@@ -94,6 +94,7 @@ celerybeat.pid
 # Uploads & user data (keep empty tree with .gitkeep)
 uploads/**
 !uploads/.gitkeep
+!uploads/logs/.gitkeep
 
 # Docker / local volumes (bind mounts that might appear as dirs)
 # Named volumes are not in repo; ignore accidental local dirs if created

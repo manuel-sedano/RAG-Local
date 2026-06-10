@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from functools import lru_cache
 from typing import Literal
@@ -26,6 +27,55 @@ class Settings(BaseSettings):
     )
 
     log_level: str = Field(default="INFO")
+    log_json_enabled: bool = Field(
+        default=True,
+        description="Logs en JSON (recomendado para Loki/Promtail).",
+    )
+    log_access_enabled: bool = Field(
+        default=True,
+        description="Middleware de acceso HTTP con líneas JSON (event=http_access).",
+    )
+    log_service_name: str = Field(
+        default="rag-backend",
+        description="Etiqueta service en logs (rag-worker en el proceso Celery).",
+    )
+    log_file_enabled: bool = Field(
+        default=True,
+        description="Escribe copia JSONL en disco para Promtail (dev local).",
+    )
+    log_file_dir: str = Field(
+        default="uploads/logs",
+        description="Directorio de logs JSONL (relativo al cwd o absoluto).",
+    )
+    log_file_max_bytes: int = Field(default=5_242_880, ge=64_000)
+    log_file_backup_count: int = Field(default=3, ge=0, le=20)
+    loki_enabled: bool = Field(
+        default=True,
+        description="Habilita envío de logs vía Promtail (labels Docker / archivos JSONL).",
+    )
+
+    observability_enabled: bool = Field(
+        default=True,
+        description="Habilita métricas Prometheus y export en worker (si aplica).",
+    )
+    prometheus_enabled: bool = Field(
+        default=True,
+        description="Expone GET /metrics y middleware HTTP de latencia.",
+    )
+    prometheus_metrics_path: str = Field(
+        default="/metrics",
+        description="Ruta de exposición Prometheus (también accesible vía Traefik si se enruta).",
+    )
+    prometheus_include_kb_id_label: bool = Field(
+        default=False,
+        description="Si true, añade hash corto de kb_id en métricas (privacidad: false por defecto).",
+    )
+    worker_prometheus_port: int = Field(
+        default=8001,
+        ge=1024,
+        le=65535,
+        description="Puerto HTTP del exporter Prometheus en el worker Celery.",
+    )
 
     cors_allow_origins: str = Field(
         default=(
@@ -48,6 +98,50 @@ class Settings(BaseSettings):
     auth_failed_password_threshold: int = Field(default=5, ge=1)
     auth_lockout_base_seconds: int = Field(default=60, ge=1)
     auth_lockout_max_seconds: int = Field(default=3600, ge=1)
+
+    app_rate_limit_enabled: bool = Field(
+        default=True,
+        description="Rate limit global por usuario autenticado (Redis).",
+    )
+    app_rate_limit_per_minute: int = Field(default=120, ge=1)
+    ingest_upload_max_per_user_per_minute: int = Field(
+        default=10,
+        ge=1,
+        description="Máximo de subidas de documentos por usuario por minuto.",
+    )
+    ingest_upload_max_per_kb_per_minute: int = Field(
+        default=20,
+        ge=1,
+        description="Máximo de subidas por KB por minuto (todos los usuarios).",
+    )
+    rate_limit_audit_enabled: bool = Field(
+        default=True,
+        description="Persistir filas en rate_limit_events al devolver 429.",
+    )
+
+    fail2ban_security_log_enabled: bool = Field(
+        default=True,
+        description="Middleware SECURITY_ACCESS en respuestas 401/403/429 de /api.",
+    )
+    fail2ban_security_log_path: str = Field(
+        default="",
+        description="Ruta opcional a archivo (p. ej. /var/log/rag/security-access.log en Docker).",
+    )
+
+    prompt_guard_enabled: bool = Field(
+        default=True,
+        description="Sanitización de chunks y heurísticas anti prompt injection.",
+    )
+    prompt_guard_block_user_exfil: bool = Field(
+        default=True,
+        description="Rechazar consultas que piden secretos o el system prompt.",
+    )
+    prompt_guard_max_chunk_chars: int = Field(
+        default=4000,
+        ge=200,
+        le=20_000,
+        description="Tope de caracteres por snippet tras sanitizar.",
+    )
 
     database_url: str = Field(
         default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
@@ -326,6 +420,26 @@ class Settings(BaseSettings):
         description="Directorio cache de modelos FlashRank (vacío = default de la lib).",
     )
 
+    clamav_enabled: bool = Field(
+        default=True,
+        description="Escaneo antivirus en la etapa ingest antes de parse.",
+    )
+    clamav_host: str = Field(default="clamav")
+    clamav_port: int = Field(default=3310, ge=1, le=65535)
+    clamav_timeout_seconds: float = Field(
+        default=120.0,
+        ge=5.0,
+        description="Timeout por conexión INSTREAM a clamd.",
+    )
+    clamav_fail_open: bool = Field(
+        default=False,
+        description="Si clamd no responde, omitir escaneo (solo dev/local).",
+    )
+    clamav_allow_eicar_test: bool = Field(
+        default=False,
+        description="Backend fake en test: detectar cadena EICAR estándar.",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins(self) -> list[str]:
@@ -398,6 +512,12 @@ class Settings(BaseSettings):
 
         if self.environment == "test":
             self.celery_task_always_eager = True
+            env_prom = os.environ.get("PROMETHEUS_ENABLED", "").strip().lower()
+            if env_prom in ("0", "false", "no", "off"):
+                self.prometheus_enabled = False
+            env_clamav = os.environ.get("CLAMAV_ENABLED", "").strip().lower()
+            if env_clamav not in ("1", "true", "yes", "on"):
+                self.clamav_enabled = False
 
         if self.chunk_overlap_tokens >= self.chunk_size_tokens:
             msg = "CHUNK_OVERLAP_TOKENS debe ser menor que CHUNK_SIZE_TOKENS."

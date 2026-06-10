@@ -291,6 +291,8 @@ Diseño **local-first:** binarios en volumen y metadatos en PostgreSQL; object s
 
 ## 8) Protección contra prompt injection
 
+**Implementación (rama `feat/security-prompt-guards`):** `app/services/chat/prompt_guards.py` filtra chunks con patrones de inyección, sanitiza snippets, bloquea consultas de exfiltración y persiste `safety_flags` en el mensaje assistant. Variables: `PROMPT_GUARD_ENABLED`, `PROMPT_GUARD_BLOCK_USER_EXFIL`, `PROMPT_GUARD_MAX_CHUNK_CHARS`. Pruebas: `scripts/test-prompt-guards.sh`.
+
 ### 8.1 Amenaza
 
 Documentos subidos pueden contener texto malicioso como:

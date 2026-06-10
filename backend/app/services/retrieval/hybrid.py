@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import uuid
 
 from sqlalchemy import select
@@ -16,6 +17,7 @@ from app.services.qdrant import search_chunks
 from app.services.retrieval.bm25_index import bm25_search, refresh_kb_bm25_index
 from app.services.retrieval.filters import candidate_from_payload, enrich_candidate_from_db, matches_filters
 from app.services.retrieval.fusion import log_fusion_debug, reciprocal_rank_fusion
+from app.observability.metrics import observe_retrieval
 from app.services.retrieval.rerank import rerank_search_hits
 from app.services.retrieval.types import ChunkCandidate, SearchFilters, SearchHit, SearchResult
 
@@ -166,6 +168,7 @@ def hybrid_search(
     vector_ranked: list[tuple[ChunkCandidate, float]] = []
     bm25_ranked: list[tuple[ChunkCandidate, float]] = []
 
+    vector_start = time.perf_counter()
     try:
         vector_ranked = _vector_candidates(
             session,
@@ -175,17 +178,34 @@ def hybrid_search(
             limit=vector_top_k,
             filters=filters,
         )
+        if settings.prometheus_enabled:
+            observe_retrieval(
+                "vector",
+                time.perf_counter() - vector_start,
+                status="ok" if vector_ranked else "empty",
+            )
     except Exception:
+        if settings.prometheus_enabled:
+            observe_retrieval("vector", time.perf_counter() - vector_start, status="error")
         logger.exception("Fallo en búsqueda vectorial kb_id=%s", kb_id)
         vector_ranked = []
 
     if use_hybrid and bm25_top_k > 0:
+        bm25_start = time.perf_counter()
         try:
             bm25_ranked = bm25_search(kb_id, q, top_k=bm25_top_k, settings=settings)
             if not bm25_ranked:
                 refresh_kb_bm25_index(session, kb_id, settings)
                 bm25_ranked = bm25_search(kb_id, q, top_k=bm25_top_k, settings=settings)
+            if settings.prometheus_enabled:
+                observe_retrieval(
+                    "bm25",
+                    time.perf_counter() - bm25_start,
+                    status="ok" if bm25_ranked else "empty",
+                )
         except Exception:
+            if settings.prometheus_enabled:
+                observe_retrieval("bm25", time.perf_counter() - bm25_start, status="error")
             logger.exception("Fallo en búsqueda BM25 kb_id=%s", kb_id)
             bm25_ranked = []
 

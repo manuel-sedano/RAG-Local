@@ -14,6 +14,9 @@ elif [[ -f ../.venv/bin/activate ]]; then
 fi
 
 export PYTHONPATH="${PYTHONPATH:-}:$(pwd)"
+export LOG_SERVICE_NAME="${LOG_SERVICE_NAME:-rag-worker}"
+export LOG_FILE_ENABLED="${LOG_FILE_ENABLED:-true}"
+export LOG_FILE_DIR="${LOG_FILE_DIR:-../uploads/logs}"
 
 echo "Iniciando Celery worker (colas: ingest, ocr, embed)…"
 echo "Requiere Redis en CELERY_BROKER_URL (p. ej. redis://127.0.0.1:6379/0)"

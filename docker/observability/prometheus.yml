@@ -1,6 +1,9 @@
 global:
   scrape_interval: 15s
 
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
   - job_name: prometheus
     static_configs:
@@ -10,3 +13,21 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["traefik:8080"]
+
+  # API FastAPI (uvicorn en host WSL o imagen real en Fase 14).
+  - job_name: rag-backend
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: backend
+
+  # Worker Celery (exporter HTTP en WORKER_PROMETHEUS_PORT, default 8001).
+  - job_name: rag-worker
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
+        labels:
+          service: worker

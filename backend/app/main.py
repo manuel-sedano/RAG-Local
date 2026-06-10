@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from starlette.responses import Response
 from sqlalchemy.orm import sessionmaker
 
 from app.api.routes.auth import router as auth_router
@@ -19,7 +21,15 @@ from app.api.routes.search import router as search_router
 from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
+from app.core.access_log_middleware import StructuredAccessLogMiddleware
+from app.core.correlation_middleware import CorrelationPathMiddleware
 from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.prometheus_middleware import PrometheusMiddleware
+from app.core.rate_limit_middleware import UserRateLimitMiddleware
+from app.core.security_access_log import (
+    SecurityAccessLogMiddleware,
+    configure_security_access_logging,
+)
 from app.db.session import get_engine
 from app.realtime.server import create_socketio_server
 
@@ -30,6 +40,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings)
+    configure_security_access_logging(settings)
     engine = get_engine()
     app.state.db_engine = engine
     app.state.db_session_factory = sessionmaker(
@@ -78,6 +89,14 @@ def create_app() -> FastAPI:
     register_error_handlers(application)
 
     application.add_middleware(RequestIdMiddleware)
+    if settings.log_access_enabled and settings.log_json_enabled:
+        application.add_middleware(StructuredAccessLogMiddleware, settings=settings)
+    application.add_middleware(CorrelationPathMiddleware)
+    if settings.prometheus_enabled:
+        application.add_middleware(PrometheusMiddleware, settings=settings)
+    application.add_middleware(UserRateLimitMiddleware)
+    if settings.fail2ban_security_log_enabled:
+        application.add_middleware(SecurityAccessLogMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,
@@ -93,6 +112,16 @@ def create_app() -> FastAPI:
     application.include_router(chats_router, prefix="/api")
     application.include_router(search_router, prefix="/api")
     application.include_router(documents_router, prefix="/api")
+
+    if settings.prometheus_enabled:
+
+        @application.get(
+            settings.prometheus_metrics_path,
+            include_in_schema=False,
+            tags=["observability"],
+        )
+        async def prometheus_metrics() -> Response:
+            return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @application.get("/")
     async def root() -> dict[str, str]:

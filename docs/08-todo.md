@@ -485,77 +485,77 @@ Reglas:
 
 ### Feature branch: `feat/security-clamav`
 
-- [ ] Docker:
-  - [ ] agregar servicio `clamav` (clamd)
-  - [ ] healthcheck
-- [ ] Worker:
-  - [ ] integrar escaneo antes de parse
-  - [ ] cuarentena:
-    - [ ] mover archivo a `uploads/quarantine/`
-    - [ ] marcar doc `QUARANTINED`
-  - [ ] registrar `security_event` con hash y firma
-- [ ] Backend/Frontend:
-  - [ ] mostrar estado “en cuarentena”
-  - [ ] UI mensajes claros en español
-- [ ] Tests:
-  - [ ] prueba con archivo EICAR (si se autoriza en entorno)
+- [x] ~~Docker:~~
+  - [x] ~~agregar servicio `clamav` (clamd)~~ — perfil `clamav`, puerto `127.0.0.1:3310`.
+  - [x] ~~healthcheck~~ — `clamdcheck.sh`, `start_period` 300s.
+- [x] ~~Worker:~~
+  - [x] ~~integrar escaneo antes de parse~~ — `app/services/antivirus/` + etapa `antivirus` en `ingest.py`.
+  - [x] ~~cuarentena:~~
+    - [x] ~~mover archivo a `uploads/quarantine/`~~ — `quarantine.py`.
+    - [x] ~~marcar doc `QUARANTINED`~~
+  - [x] ~~registrar `security_event` con hash y firma~~ — `DOCUMENT_QUARANTINED`.
+- [x] ~~Backend/Frontend:~~
+  - [x] ~~mostrar estado “en cuarentena”~~ — badge y bloqueo descarga (ya en API).
+  - [x] ~~UI mensajes claros en español~~ — `documents/page.tsx`.
+- [x] ~~Tests:~~
+  - [x] ~~prueba con archivo EICAR (si se autoriza en entorno)~~ — `test_clamav_unit.py`, `test_ingestion_worker.py`, `test_clamav_integration.py` + `scripts/test-clamav.sh`.
 
 ## Feature: WAF
 
 ### Feature branch: `feat/security-waf-modsecurity`
 
-- [ ] Docker:
-  - [ ] contenedor ModSecurity + OWASP CRS
-  - [ ] routing Traefik → WAF → backend
-  - [ ] modo inicial `DetectionOnly`
-  - [ ] logging de eventos WAF a Loki
-- [ ] Ajustes:
-  - [ ] excepciones mínimas para uploads (sin abrir demasiado)
-  - [ ] límites de body size
-- [ ] Tests:
-  - [ ] requests con payload XSS/SQLi bloqueados
+- [x] ~~Docker:~~
+  - [x] ~~contenedor ModSecurity + OWASP CRS~~ — `owasp/modsecurity-crs:4-nginx-alpine` en `docker-compose.waf.yml` (perfil `waf`).
+  - [x] ~~routing Traefik → WAF → backend~~ — `bootstrap-waf.yml`; `/socket.io` directo al backend.
+  - [x] ~~modo inicial `DetectionOnly`~~ — `WAF_MODE` → `MODSEC_RULE_ENGINE`.
+  - [x] ~~logging de eventos WAF a Loki~~ — audit JSON stdout + Promtail (`logging.promtail=true`).
+- [x] ~~Ajustes:~~
+  - [x] ~~excepciones mínimas para uploads (sin abrir demasiado)~~ — `docker/waf/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf`.
+  - [x] ~~límites de body size~~ — `MAX_FILE_SIZE` / `MODSEC_REQ_BODY_LIMIT` = `WAF_MAX_BODY_BYTES` (50 MB).
+- [x] ~~Tests:~~
+  - [x] ~~requests con payload XSS/SQLi bloqueados~~ — `scripts/test-waf.sh`, `tests/test_waf_integration.py` (con `WAF_MODE=On`).
 
 ## Feature: rate limiting
 
 ### Feature branch: `feat/security-rate-limits`
 
-- [ ] Traefik:
-  - [ ] middleware rate limit por IP
-  - [ ] policy específica `/api/auth/login`
-- [ ] Backend:
-  - [ ] rate limit por usuario (Redis)
-  - [ ] quotas para ingesta (docs/min)
-- [ ] Auditoría:
-  - [ ] persistir `rate_limit_events`
-- [ ] Tests:
-  - [ ] rebasar límite → 429
+- [x] ~~Traefik:~~
+  - [x] ~~middleware rate limit por IP~~ — `rag-ratelimit-api` (200/min) en `bootstrap.yml` / `bootstrap-waf.yml`.
+  - [x] ~~policy específica `/api/auth/login`~~ — router `rag-auth-login` + `rag-ratelimit-login` (10/min).
+- [x] ~~Backend:~~
+  - [x] ~~rate limit por usuario (Redis)~~ — `UserRateLimitMiddleware` + `APP_RATE_LIMIT_*`.
+  - [x] ~~quotas para ingesta (docs/min)~~ — `check_ingest_upload_quota` en upload (`INGEST_UPLOAD_MAX_*`).
+- [x] ~~Auditoría:~~
+  - [x] ~~persistir `rate_limit_events`~~ — `rate_limit_audit.py` + middleware/rutas auth/upload.
+- [x] ~~Tests:~~
+  - [x] ~~rebasar límite → 429~~ — `tests/test_rate_limit_unit.py`, `tests/test_rate_limit_integration.py`, `scripts/test-rate-limits.sh`.
 
 ## Feature: Fail2ban
 
 ### Feature branch: `feat/security-fail2ban`
 
-- [ ] Definir estrategia:
-  - [ ] leer logs de Traefik/WAF/Backend
-  - [ ] patrones: múltiples 401/403/login fail
-- [ ] Docker:
-  - [ ] contenedor fail2ban (si viable en WSL2) o documentación para host-level
-- [ ] Tests:
-  - [ ] simulación de brute-force (manual) y bloqueo de IP (local)
+- [x] ~~Definir estrategia:~~
+  - [x] ~~leer logs de Traefik/WAF/Backend~~ — `docs/17-fail2ban.md`; Traefik `access.log`, backend `SECURITY_ACCESS`.
+  - [x] ~~patrones: múltiples 401/403/login fail~~ — `docker/fail2ban/data/filter.d/`.
+- [x] ~~Docker:~~
+  - [x] ~~contenedor fail2ban (si viable en WSL2) o documentación para host-level~~ — perfil `fail2ban` + `banaction=dummy` (WSL); iptables en Linux en doc.
+- [x] ~~Tests:~~
+  - [x] ~~simulación de brute-force (manual) y bloqueo de IP (local)~~ — `scripts/test-fail2ban.sh`, `tests/test_fail2ban_filters.py`.
 
 ## Feature: prompt injection defense
 
 ### Feature branch: `feat/security-prompt-guards`
 
-- [ ] Backend:
-  - [ ] sanitización de chunks antes de prompt
-  - [ ] heurística para detectar instrucciones maliciosas
-  - [ ] excluir chunks sospechosos del contexto
-  - [ ] registrar `safety_flags` en mensaje
-- [ ] UX:
-  - [ ] mostrar aviso “contenido potencialmente malicioso fue ignorado” (opcional)
-- [ ] Tests:
-  - [ ] documento con “ignora instrucciones” no domina la respuesta
-  - [ ] query de exfiltración es rechazada
+- [x] ~~Backend:~~
+  - [x] ~~sanitización de chunks antes de prompt~~ — `app/services/chat/prompt_guards.py` (`sanitize_chunk_text`, etiqueta `[DOC:` en `prompting.py`).
+  - [x] ~~heurística para detectar instrucciones maliciosas~~ — patrones es/en en chunks y consulta.
+  - [x] ~~excluir chunks sospechosos del contexto~~ — `filter_search_hits` en `generation.py` y `streaming.py`.
+  - [x] ~~registrar `safety_flags` en mensaje~~ — JSONB en `ChatMessage` + API `safety_flags`.
+- [x] ~~UX:~~
+  - [x] ~~mostrar aviso “contenido potencialmente malicioso fue ignorado” (opcional)~~ — banner ámbar en `frontend/.../chats/[chatId]/page.tsx` si `user_notice`.
+- [x] ~~Tests:~~
+  - [x] ~~documento con “ignora instrucciones” no domina la respuesta~~ — `tests/test_prompt_guards_integration.py`.
+  - [x] ~~query de exfiltración es rechazada~~ — mismo + `tests/test_prompt_guards_unit.py`, `scripts/test-prompt-guards.sh`.
 
 ---
 
@@ -565,34 +565,34 @@ Reglas:
 
 ### Feature branch: `feat/observability-metrics`
 
-- [ ] Backend:
-  - [ ] exponer `/metrics` (Prometheus)
-  - [ ] métricas por etapa:
-    - [ ] ingest parse/ocr/embed/upsert
-    - [ ] retrieval vector/bm25/rerank
-    - [ ] chat first-token/total
-  - [ ] labels: `kb_id` (cuidado privacidad), `status`, `endpoint`
-- [ ] Docker:
-  - [ ] prometheus config para scrape
-  - [ ] grafana datasource prometheus/loki
-- [ ] Dashboards:
-  - [ ] latencia API
-  - [ ] tasa de errores
-  - [ ] duración ingesta por etapa
-  - [ ] throughput de embeddings
-- [ ] Tests:
-  - [ ] verificar scrape y paneles visibles
+- [x] ~~Backend:~~
+  - [x] ~~exponer `/metrics` (Prometheus)~~ — `app/main.py` + `prometheus-client`; middleware HTTP en `prometheus_middleware.py`.
+  - [x] ~~métricas por etapa:~~
+    - [x] ~~ingest parse/ocr/embed/upsert~~ — `app/observability/metrics.py` + etapas en `ingest.py`; exporter worker en `celery_app.py`.
+    - [x] ~~retrieval vector/bm25/rerank~~ — `hybrid.py`, `rerank.py`.
+    - [x] ~~chat first-token/total~~ — `generation.py`, `streaming.py`.
+  - [x] ~~labels: `kb_id` (cuidado privacidad), `status`, `endpoint`~~ — `status`/`endpoint` en HTTP e ingesta; `kb_id` deshabilitado por defecto (`PROMETHEUS_INCLUDE_KB_ID_LABEL=false`).
+- [x] ~~Docker:~~
+  - [x] ~~prometheus config para scrape~~ — `docker/observability/prometheus.yml` (Traefik + `host.docker.internal:8000/8001`).
+  - [x] ~~grafana datasource prometheus/loki~~ — UIDs fijos + URL con prefijo `/prometheus`.
+- [x] ~~Dashboards:~~
+  - [x] ~~latencia API~~ — `rag-overview.json` (p95 por endpoint).
+  - [x] ~~tasa de errores~~ — panel ratio 5xx.
+  - [x] ~~duración ingesta por etapa~~ — `rag_ingest_stage_duration_seconds`.
+  - [x] ~~throughput de embeddings~~ — `rag_embeddings_processed_total`.
+- [x] ~~Tests:~~
+  - [x] ~~verificar scrape y paneles visibles~~ — `tests/test_prometheus_metrics.py` + `scripts/test-observability.sh`.
 
 ### Feature branch: `feat/observability-logs`
 
-- [ ] Logs:
-  - [ ] formato estructurado
-  - [ ] correlación por `request_id`, `document_id`, `chat_id`
-- [ ] Loki:
-  - [ ] promtail o driver para enviar logs
-  - [ ] queries guardadas para debugging
-- [ ] Alertas (opcional):
-  - [ ] reglas simples: alta tasa de 5xx, dependencia caída
+- [x] ~~Logs:~~
+  - [x] ~~formato estructurado~~ — JSON en `logging_config.py` + `http_access` en `access_log_middleware.py`.
+  - [x] ~~correlación por `request_id`, `document_id`, `chat_id`~~ — `log_context.py`, `correlation_middleware.py`, ingesta/worker.
+- [x] ~~Loki:~~
+  - [x] ~~promtail o driver para enviar logs~~ — `promtail-config.yml` (Docker labels + `uploads/logs/*.jsonl`); labels en compose.
+  - [x] ~~queries guardadas para debugging~~ — dashboard `rag-logs.json` + panel de queries en Grafana.
+- [x] ~~Alertas (opcional):~~
+  - [x] ~~reglas simples: alta tasa de 5xx, dependencia caída~~ — `docker/observability/prometheus/rules/alerts.yml`.
 
 ---
 
