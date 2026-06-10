@@ -21,6 +21,8 @@ from app.api.routes.search import router as search_router
 from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
+from app.core.access_log_middleware import StructuredAccessLogMiddleware
+from app.core.correlation_middleware import CorrelationPathMiddleware
 from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
 from app.core.prometheus_middleware import PrometheusMiddleware
 from app.core.rate_limit_middleware import UserRateLimitMiddleware
@@ -87,6 +89,9 @@ def create_app() -> FastAPI:
     register_error_handlers(application)
 
     application.add_middleware(RequestIdMiddleware)
+    if settings.log_access_enabled and settings.log_json_enabled:
+        application.add_middleware(StructuredAccessLogMiddleware, settings=settings)
+    application.add_middleware(CorrelationPathMiddleware)
     if settings.prometheus_enabled:
         application.add_middleware(PrometheusMiddleware, settings=settings)
     application.add_middleware(UserRateLimitMiddleware)

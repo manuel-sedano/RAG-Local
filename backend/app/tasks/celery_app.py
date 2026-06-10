@@ -9,10 +9,11 @@ from __future__ import annotations
 import logging
 
 from celery import Celery
-from celery.signals import worker_ready
+from celery.signals import worker_process_init, worker_ready
 from kombu import Queue
 
 from app.core.config import get_settings
+from app.core.logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,13 @@ def create_celery_app() -> Celery:
 
 
 celery_app = create_celery_app()
+
+
+@worker_process_init.connect
+def _configure_worker_logging(**_kwargs: object) -> None:
+    settings = get_settings()
+    configure_logging(settings, service_name="rag-worker")
+    logger.info("Logging estructurado del worker configurado.")
 
 
 @worker_ready.connect

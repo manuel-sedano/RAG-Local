@@ -37,6 +37,7 @@ from app.services.parsing.errors import ParserError, RecoverableParserError
 from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
 from app.services.parsing.orchestrator import parse_document_file
 from app.services.parsing.pipeline_context import IngestPipelineContext
+from app.core.log_context import log_context
 from app.observability.metrics import (
     observe_ingest_stage,
     record_embeddings_processed,
@@ -373,7 +374,8 @@ def ingest_document(self: Task, document_id: str) -> None:
             return
 
         try:
-            metrics = _pipeline_ingest_document(session, document)
+            with log_context(document_id=document.id, kb_id=document.kb_id):
+                metrics = _pipeline_ingest_document(session, document)
             _mark_run_succeeded(session, document, run, metrics)
             if get_settings().prometheus_enabled:
                 record_ingest_outcome("succeeded")

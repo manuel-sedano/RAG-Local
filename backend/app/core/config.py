@@ -27,6 +27,32 @@ class Settings(BaseSettings):
     )
 
     log_level: str = Field(default="INFO")
+    log_json_enabled: bool = Field(
+        default=True,
+        description="Logs en JSON (recomendado para Loki/Promtail).",
+    )
+    log_access_enabled: bool = Field(
+        default=True,
+        description="Middleware de acceso HTTP con líneas JSON (event=http_access).",
+    )
+    log_service_name: str = Field(
+        default="rag-backend",
+        description="Etiqueta service en logs (rag-worker en el proceso Celery).",
+    )
+    log_file_enabled: bool = Field(
+        default=True,
+        description="Escribe copia JSONL en disco para Promtail (dev local).",
+    )
+    log_file_dir: str = Field(
+        default="uploads/logs",
+        description="Directorio de logs JSONL (relativo al cwd o absoluto).",
+    )
+    log_file_max_bytes: int = Field(default=5_242_880, ge=64_000)
+    log_file_backup_count: int = Field(default=3, ge=0, le=20)
+    loki_enabled: bool = Field(
+        default=True,
+        description="Habilita envío de logs vía Promtail (labels Docker / archivos JSONL).",
+    )
 
     observability_enabled: bool = Field(
         default=True,
