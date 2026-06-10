@@ -4,6 +4,7 @@ Comandos pensados para **WSL / bash**. En Windows puedes ejecutarlos con `bash s
 
 | Script | Propósito |
 |--------|-----------|
+| `run-api-dev.sh` | **API + Socket.IO** en `:8000` (`asgi_application`; obligatorio para chat/ingesta en vivo). |
 | `run-celery-worker.sh` | **Worker de ingesta** (PDF → chunk → embed → Qdrant). Obligatorio en dev local si no usas `CELERY_TASK_ALWAYS_EAGER=true`. |
 | `reset-qdrant-collection.sh` | Borra `rag_chunks_v1` tras `qdrant_dimension_mismatch`; luego reindexar documentos. |
 | `backup.sh` | Stub: futuro `pg_dump` + copia de uploads. |

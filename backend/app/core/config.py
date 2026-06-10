@@ -373,6 +373,13 @@ class Settings(BaseSettings):
         le=500,
         description="Constante k de Reciprocal Rank Fusion.",
     )
+    rag_overview_fallback_enabled: bool = Field(
+        default=True,
+        description=(
+            "Si true, ante preguntas meta (p. ej. «de qué va el PDF») devuelve chunks "
+            "indexados cuando la búsqueda híbrida no obtiene hits."
+        ),
+    )
     rag_search_max_top_k: int = Field(
         default=50,
         ge=1,

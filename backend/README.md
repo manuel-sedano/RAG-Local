@@ -182,7 +182,7 @@ pytest tests/test_retrieval_integration.py -v --tb=short
 
 ```bash
 # Backend local (desde backend/, con .env y Postgres/Qdrant según docs/04-env-example.md)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
 # Swagger: http://localhost:8000/docs → POST /api/kbs/{kb_id}/search
 ```
 
@@ -225,7 +225,7 @@ bash scripts/test-chat.sh
 **Prueba manual (Swagger):** tras login, crea una KB y usa `POST /api/kbs/{kb_id}/chats`, luego lista y abre mensajes. No hace falta variable de entorno nueva: los modelos ya están en la migración inicial.
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:asgi_application --reload --host 0.0.0.0 --port 8000
 # Swagger: http://localhost:8000/docs → sección «chats»
 ```
 

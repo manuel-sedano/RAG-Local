@@ -6,42 +6,36 @@ import { usePathname } from "next/navigation";
 import { KbSelector } from "@/components/kb-selector";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { useKnowledgeBases } from "@/lib/kb-context";
+import { es } from "@/lib/i18n/es";
 
 export function AppHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { activeKbId } = useKnowledgeBases();
 
   if (!user) return null;
 
-  const onKbRoute = pathname.match(/^\/kbs\/([^/]+)/);
-  const routeKbId = onKbRoute?.[1] ?? null;
-  const kbId = activeKbId ?? routeKbId;
+  const inKbWorkspace = /^\/kbs\/[^/]+(\/|$)/.test(pathname);
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-end gap-3 px-4 py-3 sm:gap-4">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-end gap-3 px-4 py-3 sm:gap-4">
         <Link href="/" className="shrink-0 text-sm font-semibold tracking-tight hover:opacity-80">
-          RAG Local
+          {es.app.name}
         </Link>
         <KbSelector id="app-header-kb" />
         <nav className="flex flex-1 flex-wrap items-center justify-end gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/kbs">Gestionar KBs</Link>
+            <Link href="/kbs">{es.nav.manageKbs}</Link>
           </Button>
-          {kbId ? (
+          {!inKbWorkspace ? (
             <>
               <Button asChild variant="secondary" size="sm">
-                <Link href={`/kbs/${kbId}/documents`}>Documentos</Link>
-              </Button>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={`/kbs/${kbId}/chats`}>Chat</Link>
+                <Link href="/">{es.nav.home}</Link>
               </Button>
             </>
           ) : null}
           <Button type="button" variant="outline" size="sm" onClick={() => void logout()}>
-            Salir
+            {es.nav.logout}
           </Button>
         </nav>
       </div>

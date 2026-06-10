@@ -602,38 +602,38 @@ Reglas:
 
 ### Feature branch: `feat/frontend-layout`
 
-- [ ] Layout:
-  - [ ] navegación (KB selector)
-  - [ ] sidebar de documentos
-  - [ ] panel de chat
-- [ ] Estados:
-  - [ ] loading
-  - [ ] empty
-  - [ ] error
-- [ ] i18n (mínimo):
-  - [ ] strings en español centralizados
+- [x] ~~Layout:~~
+  - [x] ~~navegación (KB selector)~~ — `AppHeader` + `KbSelector`; pestañas móvil `KbMobileNav`.
+  - [x] ~~sidebar de documentos~~ — `KbSidebar` con lista de docs y chats según sección.
+  - [x] ~~panel de chat~~ — `ChatQuickPanel` (xl) en vista documentos; sidebar de chats en rutas `/chats`.
+- [x] ~~Estados:~~
+  - [x] ~~loading~~ — `LoadingState` en `page-state.tsx`.
+  - [x] ~~empty~~ — `EmptyState`.
+  - [x] ~~error~~ — `ErrorState`.
+- [x] ~~i18n (mínimo):~~
+  - [x] ~~strings en español centralizados~~ — `frontend/src/lib/i18n/es.ts`.
 
 ## Feature: documents UI
 
 ### Feature branch: `feat/frontend-documents`
 
-- [ ] Lista de documentos con filtros:
-  - [ ] status
-  - [ ] tags
-  - [ ] source
-  - [ ] tipo
-- [ ] Detalle de documento:
-  - [ ] metadatos
-  - [ ] estado de ingesta por etapas
-  - [ ] botón reindex (si existe)
-- [ ] **Visor con salto a página (PDF):**
-  - [ ] ruta p. ej. `/kbs/[kbId]/documents/[docId]?page=N`
-  - [ ] integrar **PDF.js**; obtener PDF con `Authorization` (fetch) y pasar a visor
-  - [ ] DOCX/TXT: descarga o vista texto; sin prometer página exacta salvo conversión futura a PDF
-- [ ] Upload:
-  - [ ] drag&drop
-  - [ ] validación UX
-  - [ ] progreso de ingesta (socket o polling)
+- [x] ~~Lista de documentos con filtros:~~
+  - [x] ~~status~~ — query `status` al API + `DocumentFilters`.
+  - [x] ~~tags~~ — filtro cliente; `tags`/`source` en `DocumentListItem` (API).
+  - [x] ~~source~~ — filtro cliente.
+  - [x] ~~tipo~~ — filtro MIME en cliente.
+- [x] ~~Detalle de documento:~~
+  - [x] ~~metadatos~~ — `/kbs/[kbId]/documents/[docId]`.
+  - [x] ~~estado de ingesta por etapas~~ — `DocumentIngestionStages` + polling.
+  - [x] ~~botón reindex (si existe)~~ — `POST .../reindex`.
+- [x] ~~**Visor con salto a página (PDF):**~~
+  - [x] ~~ruta p. ej. `/kbs/[kbId]/documents/[docId]?page=N`~~
+  - [x] ~~integrar **PDF.js**; obtener PDF con `Authorization` (fetch) y pasar a visor~~ — `pdfjs-dist` + `fetchDocumentArrayBuffer`.
+  - [x] ~~DOCX/TXT: descarga o vista texto; sin prometer página exacta salvo conversión futura a PDF~~ — `TextDocumentViewer`; DOCX mensaje + descarga.
+- [x] ~~Upload:~~
+  - [x] ~~drag&drop~~ — `DocumentUploadZone` (ya existía; i18n).
+  - [x] ~~validación UX~~ — `validateClientFile`.
+  - [x] ~~progreso de ingesta (socket o polling)~~ — `useIngestProgress` + barra en upload; polling en lista/detalle.
 
 ## Feature: chat UI
 

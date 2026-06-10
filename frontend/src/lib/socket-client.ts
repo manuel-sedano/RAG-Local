@@ -5,11 +5,7 @@
 import { Manager, type Socket } from "socket.io-client";
 
 import { getApiBaseUrl } from "@/lib/api-client";
-import {
-  AuthSessionError,
-  ensureAccessToken,
-  refreshAccessToken,
-} from "@/lib/auth-session";
+import { ensureAccessToken, refreshAccessToken } from "@/lib/auth-session";
 
 let manager: Manager | null = null;
 let chatSocket: Socket | null = null;
@@ -22,12 +18,8 @@ export function getSocketBaseUrl(): string {
 type SocketAuth = { token: string };
 
 function applyAuth(token: string): void {
-  const auth: SocketAuth = { token };
-  if (manager) {
-    manager.auth = auth;
-  }
   if (chatSocket) {
-    chatSocket.auth = auth;
+    chatSocket.auth = { token };
   }
 }
 
@@ -39,7 +31,6 @@ function resetSocketClient(): void {
   }
   if (manager) {
     manager.removeAllListeners();
-    manager.disconnect();
     manager = null;
   }
   refreshOnReject = false;
@@ -54,14 +45,9 @@ function isLikelyAuthConnectError(message: string): boolean {
   );
 }
 
-async function createManager(token: string): Promise<Manager> {
-  const auth: SocketAuth = { token };
+async function createManager(): Promise<Manager> {
   manager = new Manager(getSocketBaseUrl(), {
     path: "/socket.io",
-    auth,
-    query: { token },
-    extraHeaders: { Authorization: `Bearer ${token}` },
-    // Polling primero: más fiable si el WS se cierra tras rechazo de namespace
     transports: ["polling", "websocket"],
     upgrade: true,
     reconnection: true,
@@ -70,6 +56,14 @@ async function createManager(token: string): Promise<Manager> {
     autoConnect: false,
   });
   return manager;
+}
+
+function socketOptions(token: string) {
+  return {
+    auth: { token } satisfies SocketAuth,
+    query: { token },
+    extraHeaders: { Authorization: `Bearer ${token}` },
+  };
 }
 
 async function reconnectWithFreshToken(): Promise<boolean> {
@@ -94,7 +88,11 @@ function attachConnectErrorHandler(socket: Socket): void {
       const ok = await reconnectWithFreshToken();
       if (ok) return;
     }
-    console.error("Socket.IO connect_error:", err.message);
+    const hint =
+      err.message === "xhr poll error" || err.message === "websocket error"
+        ? " ¿Arrancaste uvicorn con app.main:asgi_application (p. ej. bash scripts/run-api-dev.sh)?"
+        : "";
+    console.warn(`Socket.IO connect_error: ${err.message}.${hint}`);
   });
 }
 
@@ -103,13 +101,11 @@ export async function connectChatSocket(): Promise<Socket> {
   const token = await ensureAccessToken();
 
   if (!manager) {
-    await createManager(token);
-  } else {
-    applyAuth(token);
+    await createManager();
   }
 
   if (!chatSocket) {
-    chatSocket = manager!.socket("/chat");
+    chatSocket = manager!.socket("/chat", socketOptions(token));
     attachConnectErrorHandler(chatSocket);
   } else {
     applyAuth(token);
