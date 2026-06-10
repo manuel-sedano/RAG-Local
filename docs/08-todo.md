@@ -546,16 +546,16 @@ Reglas:
 
 ### Feature branch: `feat/security-prompt-guards`
 
-- [ ] Backend:
-  - [ ] sanitización de chunks antes de prompt
-  - [ ] heurística para detectar instrucciones maliciosas
-  - [ ] excluir chunks sospechosos del contexto
-  - [ ] registrar `safety_flags` en mensaje
-- [ ] UX:
-  - [ ] mostrar aviso “contenido potencialmente malicioso fue ignorado” (opcional)
-- [ ] Tests:
-  - [ ] documento con “ignora instrucciones” no domina la respuesta
-  - [ ] query de exfiltración es rechazada
+- [x] ~~Backend:~~
+  - [x] ~~sanitización de chunks antes de prompt~~ — `app/services/chat/prompt_guards.py` (`sanitize_chunk_text`, etiqueta `[DOC:` en `prompting.py`).
+  - [x] ~~heurística para detectar instrucciones maliciosas~~ — patrones es/en en chunks y consulta.
+  - [x] ~~excluir chunks sospechosos del contexto~~ — `filter_search_hits` en `generation.py` y `streaming.py`.
+  - [x] ~~registrar `safety_flags` en mensaje~~ — JSONB en `ChatMessage` + API `safety_flags`.
+- [x] ~~UX:~~
+  - [x] ~~mostrar aviso “contenido potencialmente malicioso fue ignorado” (opcional)~~ — banner ámbar en `frontend/.../chats/[chatId]/page.tsx` si `user_notice`.
+- [x] ~~Tests:~~
+  - [x] ~~documento con “ignora instrucciones” no domina la respuesta~~ — `tests/test_prompt_guards_integration.py`.
+  - [x] ~~query de exfiltración es rechazada~~ — mismo + `tests/test_prompt_guards_unit.py`, `scripts/test-prompt-guards.sh`.
 
 ---
 

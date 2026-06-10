@@ -79,6 +79,21 @@ class Settings(BaseSettings):
         description="Ruta opcional a archivo (p. ej. /var/log/rag/security-access.log en Docker).",
     )
 
+    prompt_guard_enabled: bool = Field(
+        default=True,
+        description="Sanitización de chunks y heurísticas anti prompt injection.",
+    )
+    prompt_guard_block_user_exfil: bool = Field(
+        default=True,
+        description="Rechazar consultas que piden secretos o el system prompt.",
+    )
+    prompt_guard_max_chunk_chars: int = Field(
+        default=4000,
+        ge=200,
+        le=20_000,
+        description="Tope de caracteres por snippet tras sanitizar.",
+    )
+
     database_url: str = Field(
         default="postgresql+psycopg://rag:rag_password_local@postgres:5432/rag",
         repr=False,

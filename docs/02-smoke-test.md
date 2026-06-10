@@ -115,6 +115,15 @@ Requiere el override `docker-compose.waf.yml` y la imagen `WAF_IMAGE` (tag con f
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.waf.yml --profile waf up -d
 ./scripts/test-waf.sh
+```
+
+**502 en `/api/health` tras `docker compose up --build`:** el WAF cachea la IP de `backend` al arrancar. Si solo recreas `rag_backend`, reinicia el WAF:
+
+```bash
+bash scripts/restart-waf-after-backend.sh
+# o recreación completa:
+./scripts/recreate-waf.sh
+```
 WAF_MODE=On ./scripts/test-waf.sh
 ```
 

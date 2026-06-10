@@ -45,8 +45,10 @@ def _tcp_open(host: str, port: int, timeout: float = 1.5) -> bool:
 
 
 def _sqlalchemy_ping(url: URL) -> bool:
-    admin = url.set(database="postgres")
-    engine = create_engine(admin, pool_pre_ping=True)
+    # Usar la misma base del DSN de tests (p. ej. rag_test); evita depender solo de "postgres".
+    ping_db = url.database or "postgres"
+    trial_url = url.set(database=ping_db)
+    engine = create_engine(trial_url, pool_pre_ping=True)
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))

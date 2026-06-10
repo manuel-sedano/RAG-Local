@@ -14,6 +14,11 @@ from app.core.config import Settings
 from app.models.chat import Chat, ChatMessage, MessageCitation
 from app.models.document import Chunk
 from app.services.chat.intent import is_conversational_message
+from app.services.chat.prompt_guards import (
+    assess_user_query,
+    build_safety_flags,
+    filter_search_hits,
+)
 from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import touch_chat_updated_at
 from app.services.ollama import (
@@ -129,9 +134,37 @@ def generate_chat_reply(
         msg = "El mensaje no puede quedar vacío."
         raise ValueError(msg)
 
+    user_guard = assess_user_query(content, settings)
+    user_msg = ChatMessage(chat_id=chat.id, role="user", content=content)
+    session.add(user_msg)
+    session.flush()
+
+    if user_guard.blocked:
+        refusal = user_guard.refusal_message or (
+            "No puedo ayudar con esa solicitud por políticas de seguridad."
+        )
+        assistant_msg = ChatMessage(
+            chat_id=chat.id,
+            role="assistant",
+            content=refusal,
+            model=settings.llm_model,
+            safety_flags=build_safety_flags(user_guard=user_guard),
+        )
+        session.add(assistant_msg)
+        session.flush()
+        touch_chat_updated_at(session, chat)
+        return GeneratedReply(
+            user_message=user_msg,
+            assistant_message=assistant_msg,
+            citations=[],
+            usage={"prompt_tokens": 0, "completion_tokens": len(refusal) // 4},
+            retrieval_hit_count=0,
+        )
+
     top_k = _effective_top_k(settings, rag)
     if is_conversational_message(content):
         hits: list[SearchHit] = []
+        chunk_guard = filter_search_hits(hits, settings)
     else:
         search_result = hybrid_search(
             session,
@@ -143,11 +176,10 @@ def generate_chat_reply(
             hybrid=rag.hybrid if rag else None,
             rerank=True,
         )
-        hits = search_result.hits
+        chunk_guard = filter_search_hits(search_result.hits, settings)
 
-    user_msg = ChatMessage(chat_id=chat.id, role="user", content=content)
-    session.add(user_msg)
-    session.flush()
+    hits = chunk_guard.safe_hits
+    safety_flags = build_safety_flags(chunk_guard=chunk_guard)
 
     context_block = build_context_block(
         hits,
@@ -183,6 +215,7 @@ def generate_chat_reply(
         "top_k": top_k,
         "hybrid": rag.hybrid if rag else None,
         "hit_count": len(hits),
+        "ignored_chunks": len(chunk_guard.ignored_chunk_ids),
     }
 
     assistant_msg = ChatMessage(
@@ -192,6 +225,7 @@ def generate_chat_reply(
         model=settings.llm_model,
         rag_config=rag_config,
         message_usage=usage,
+        safety_flags=safety_flags,
     )
     session.add(assistant_msg)
     session.flush()

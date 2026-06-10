@@ -76,6 +76,11 @@ echo "== Bases de datos (admin: ${ADMIN_DB}) =="
 _ensure_database "${APP_DB}"
 _ensure_database "${TEST_DB}"
 
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/lib/postgres-host-access.sh"
+echo "== pg_hba para acceso TCP desde WSL =="
+apply_postgres_host_pg_hba "${PG_USER}"
+
 echo "== Host TCP para pytest (WSL / Docker Desktop) =="
 PY="${ROOT}/backend/.venv/bin/python"
 if [[ -x "${PY}" ]]; then
@@ -93,9 +98,11 @@ print(r or '', end='')
     export TEST_DATABASE_URL="${RESOLVED}"
     echo "Conexión OK desde el host → ${TEST_DATABASE_URL}"
   else
-    echo "AVISO: Postgres responde en el contenedor pero no por TCP desde WSL." >&2
-    echo "  Prueba: nc -zv 127.0.0.1 ${PG_PORT}" >&2
-    echo "  O alinea POSTGRES_PASSWORD=rag_local_dev en .env y reinicia postgres." >&2
+    echo "ERROR: Postgres no responde por TCP desde WSL (pytest)." >&2
+    echo "  1) source scripts/ensure-test-infra.sh  (aplica pg_hba para bridge Docker)" >&2
+    echo "  2) nc -zv 127.0.0.1 ${PG_PORT}  y POSTGRES_PASSWORD=rag_local_dev en .env" >&2
+    echo "  3) docker compose restart postgres" >&2
+    exit 1
   fi
 else
   echo "AVISO: sin backend/.venv; no se validó TCP al host." >&2

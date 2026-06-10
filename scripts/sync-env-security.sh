@@ -56,6 +56,11 @@ upsert FAIL2BAN_BANACTION "dummy"
 upsert FAIL2BAN_SECURITY_LOG_ENABLED "true"
 # FAIL2BAN_SECURITY_LOG_PATH=/var/log/rag/security-access.log
 
+# Prompt guards (sanitización de chunks + bloqueo de exfiltración)
+upsert PROMPT_GUARD_ENABLED "true"
+upsert PROMPT_GUARD_BLOCK_USER_EXFIL "true"
+upsert PROMPT_GUARD_MAX_CHUNK_CHARS "4000"
+
 # backend/.env (uvicorn local): mismas vars de seguridad para tests
 BACKEND_ENV="${ROOT}/backend/.env"
 if [[ -f "${BACKEND_ENV}" ]]; then
@@ -64,7 +69,8 @@ if [[ -f "${BACKEND_ENV}" ]]; then
     INGEST_UPLOAD_MAX_PER_USER_PER_MINUTE INGEST_UPLOAD_MAX_PER_KB_PER_MINUTE \
     RATE_LIMIT_AUDIT_ENABLED AUTH_LOGIN_MAX_ATTEMPTS_PER_IP_PER_MINUTE \
     AUTH_LOGIN_MAX_ATTEMPTS_PER_EMAIL_PER_MINUTE \
-    FAIL2BAN_ENABLED FAIL2BAN_SECURITY_LOG_ENABLED; do
+    FAIL2BAN_ENABLED FAIL2BAN_SECURITY_LOG_ENABLED \
+    PROMPT_GUARD_ENABLED PROMPT_GUARD_BLOCK_USER_EXFIL PROMPT_GUARD_MAX_CHUNK_CHARS; do
     val="$(grep "^${key}=" "${ENV_FILE}" | cut -d= -f2- || true)"
     if [[ -n "${val}" ]]; then
       if grep -q "^${key}=" "${BACKEND_ENV}" 2>/dev/null; then
@@ -77,4 +83,4 @@ if [[ -f "${BACKEND_ENV}" ]]; then
   echo "OK: backend/.env alineado (WAF_MODE, CLAMAV_*)."
 fi
 
-echo "OK: .env actualizado (WAF, ClamAV, rate limits, Fail2ban, COMPOSE_PROJECT_NAME=rag)."
+echo "OK: .env actualizado (WAF, ClamAV, rate limits, Fail2ban, prompt guards, COMPOSE_PROJECT_NAME=rag)."

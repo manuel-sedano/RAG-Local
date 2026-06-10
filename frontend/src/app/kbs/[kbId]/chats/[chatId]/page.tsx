@@ -16,10 +16,17 @@ type Citation = {
   viewer_path?: string;
 };
 
+type SafetyFlags = {
+  user_notice?: string | null;
+  ignored_chunks?: number | null;
+  user_query_blocked?: boolean | null;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
+  safety_flags?: SafetyFlags | null;
 };
 
 export default function ChatPage() {
@@ -41,12 +48,14 @@ export default function ChatPage() {
       role: string;
       content: string;
       citations?: Citation[];
+      safety_flags?: SafetyFlags | null;
     }>;
     setMessages(
       items.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
         citations: m.citations,
+        safety_flags: m.safety_flags,
       })),
     );
   }, [kbId, chatId]);
@@ -262,6 +271,11 @@ function MessageList({
             <p className="whitespace-pre-wrap">
               {showPlaceholder ? "…" : m.content}
             </p>
+            {m.role === "assistant" && m.safety_flags?.user_notice && (
+              <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900">
+                {m.safety_flags.user_notice}
+              </p>
+            )}
             {m.citations && m.citations.length > 0 && (
               <ul className="mt-2 text-xs text-slate-600">
                 {m.citations.map((c) => (

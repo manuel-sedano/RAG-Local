@@ -308,6 +308,6 @@ Exclusión típica de la salida al cliente:
 - [x] Rate limiting en Traefik + Redis por usuario (`feat/security-rate-limits`)
 - [ ] Logs con request_id + auditoría de eventos
 - [ ] Sanitización de Markdown y protección XSS
-- [ ] Guardrails anti prompt injection + grounding con citas
+- [x] Guardrails anti prompt injection + grounding con citas (`feat/security-prompt-guards`, `scripts/test-prompt-guards.sh`)
 - [ ] Archivos solo vía `GET .../documents/{id}/file` con auth; citas con `viewer_path` interno; sin JWT permanente en query string
 
