@@ -25,6 +25,11 @@ from app.services.chat.generation import (
     _persist_citations,
 )
 from app.services.chat.intent import is_conversational_message
+from app.services.chat.prompt_guards import (
+    assess_user_query,
+    build_safety_flags,
+    filter_search_hits,
+)
 from app.services.chat.prompting import build_chat_messages, build_context_block
 from app.services.chat_service import get_chat_for_kb, touch_chat_updated_at
 from app.services.ollama import (
@@ -50,6 +55,8 @@ class StreamPrepResult:
     valid_hits: list
     top_k: int
     rag_hybrid: bool | None
+    safety_flags: dict | None = None
+    ignored_chunk_count: int = 0
 
 
 @dataclass
@@ -149,9 +156,11 @@ def run_chat_stream_prepare_sync(
 
     content = user_content.strip()
     top_k = _effective_top_k(settings, rag)
+    safety_flags: dict | None = None
+    ignored_chunk_count = 0
 
     if is_conversational_message(content):
-        hits = []
+        chunk_guard = filter_search_hits([], settings)
         valid_hits: list = []
         page_map = {}
     else:
@@ -165,13 +174,15 @@ def run_chat_stream_prepare_sync(
             hybrid=rag.hybrid if rag else None,
             rerank=True,
         )
-        hits = search_result.hits
-        page_map = _load_chunk_pages(session, hits)
-        valid_hits = [h for h in hits if h.chunk_id in page_map]
-        if len(valid_hits) < len(hits):
+        chunk_guard = filter_search_hits(search_result.hits, settings)
+        ignored_chunk_count = len(chunk_guard.ignored_chunk_ids)
+        safety_flags = build_safety_flags(chunk_guard=chunk_guard)
+        page_map = _load_chunk_pages(session, chunk_guard.safe_hits)
+        valid_hits = [h for h in chunk_guard.safe_hits if h.chunk_id in page_map]
+        if len(valid_hits) < len(chunk_guard.safe_hits):
             logger.warning(
                 "Se omitieron %s hits sin chunk en Postgres (chat_id=%s)",
-                len(hits) - len(valid_hits),
+                len(chunk_guard.safe_hits) - len(valid_hits),
                 chat_id,
             )
 
@@ -236,6 +247,8 @@ def run_chat_stream_prepare_sync(
         valid_hits=valid_hits,
         top_k=top_k,
         rag_hybrid=rag.hybrid if rag else None,
+        safety_flags=safety_flags,
+        ignored_chunk_count=ignored_chunk_count,
     )
 
 
@@ -257,8 +270,10 @@ def run_chat_stream_finalize_sync(
         "top_k": prep.top_k,
         "hybrid": prep.rag_hybrid,
         "hit_count": len(prep.valid_hits),
+        "ignored_chunks": prep.ignored_chunk_count,
         "stream": True,
     }
+    assistant_msg.safety_flags = prep.safety_flags
     _, usage = fake_chat_completion(
         settings,
         user_query=prep.user_query,

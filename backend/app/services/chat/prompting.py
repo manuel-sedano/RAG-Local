@@ -35,7 +35,7 @@ def build_context_block(
         page = ""
         if hit.page is not None:
             page = f" | página {hit.page}"
-        header = f"[Fragmento {i} | doc {hit.doc_id}{page} | chunk {hit.chunk_id}]"
+        header = f"[DOC: fragmento {i} | doc {hit.doc_id}{page} | chunk {hit.chunk_id}]"
         snippet = (hit.snippet or "").strip()
         block = f"{header}\n{snippet}\n"
         if used + len(block) > max_chars:
