@@ -256,13 +256,19 @@ TRAEFIK_DASHBOARD_ENABLED=false
 OBSERVABILITY_ENABLED=true
 
 PROMETHEUS_ENABLED=true
+PROMETHEUS_METRICS_PATH=/metrics
+PROMETHEUS_INCLUDE_KB_ID_LABEL=false
+WORKER_PROMETHEUS_PORT=8001
+
 GRAFANA_ENABLED=true
 LOKI_ENABLED=true
 
-# Credenciales Grafana (cámbialas)
+# Credenciales Grafana (cámbialas; usadas por docker-compose en perfil observability)
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=admin_local_change_me
 ```
+
+**Scrape (Docker):** Prometheus en el perfil `observability` apunta a `host.docker.internal:8000` (API) y `:8001` (worker). Arranca uvicorn y el worker Celery en el host antes del smoke (`bash scripts/test-observability.sh`).
 
 ---
 

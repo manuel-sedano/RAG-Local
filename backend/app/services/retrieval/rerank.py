@@ -9,6 +9,7 @@ import time
 from dataclasses import dataclass
 
 from app.core.config import Settings
+from app.observability.metrics import observe_retrieval
 from app.services.retrieval.types import SearchHit
 
 logger = logging.getLogger(__name__)
@@ -90,23 +91,41 @@ def rerank_search_hits(
     limit = top_k if top_k is not None else settings.rag_rerank_top_k
     limit = min(max(1, limit), settings.rag_search_max_top_k)
 
+    def _finish(
+        out_hits: list[SearchHit],
+        metrics: RerankMetrics,
+    ) -> tuple[list[SearchHit], RerankMetrics]:
+        if settings.prometheus_enabled and metrics.latency_ms > 0:
+            observe_retrieval(
+                "rerank",
+                metrics.latency_ms / 1000.0,
+                status=metrics.status,
+            )
+        return out_hits, metrics
+
     if not hits:
-        return [], RerankMetrics(
-            status="skipped_empty",
-            latency_ms=0.0,
-            input_count=0,
-            output_count=0,
-            backend=settings.resolved_rerank_backend(),
+        return _finish(
+            [],
+            RerankMetrics(
+                status="skipped_empty",
+                latency_ms=0.0,
+                input_count=0,
+                output_count=0,
+                backend=settings.resolved_rerank_backend(),
+            ),
         )
 
     if not settings.rag_rerank_enabled or len(hits) <= 1:
         out = hits[:limit]
-        return out, RerankMetrics(
-            status="skipped",
-            latency_ms=0.0,
-            input_count=len(hits),
-            output_count=len(out),
-            backend=settings.resolved_rerank_backend(),
+        return _finish(
+            out,
+            RerankMetrics(
+                status="skipped",
+                latency_ms=0.0,
+                input_count=len(hits),
+                output_count=len(out),
+                backend=settings.resolved_rerank_backend(),
+            ),
         )
 
     start = time.perf_counter()
@@ -122,12 +141,15 @@ def rerank_search_hits(
         logger.exception("Rerank falló; se usa ranking híbrido previo.")
         elapsed = (time.perf_counter() - start) * 1000
         out = hits[:limit]
-        return out, RerankMetrics(
-            status="fallback",
-            latency_ms=round(elapsed, 2),
-            input_count=len(hits),
-            output_count=len(out),
-            backend=backend,
+        return _finish(
+            out,
+            RerankMetrics(
+                status="fallback",
+                latency_ms=round(elapsed, 2),
+                input_count=len(hits),
+                output_count=len(out),
+                backend=backend,
+            ),
         )
 
     elapsed = (time.perf_counter() - start) * 1000
@@ -137,12 +159,15 @@ def rerank_search_hits(
         hit.score = hit.rerank_score
         out.append(hit)
 
-    return out, RerankMetrics(
-        status=status,
-        latency_ms=round(elapsed, 2),
-        input_count=len(hits),
-        output_count=len(out),
-        backend=backend,
+    return _finish(
+        out,
+        RerankMetrics(
+            status=status,
+            latency_ms=round(elapsed, 2),
+            input_count=len(hits),
+            output_count=len(out),
+            backend=backend,
+        ),
     )
 
 

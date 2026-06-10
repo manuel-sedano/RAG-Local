@@ -37,6 +37,11 @@ from app.services.parsing.errors import ParserError, RecoverableParserError
 from app.services.parsing.ocr import document_needs_ocr, enrich_parsed_with_ocr
 from app.services.parsing.orchestrator import parse_document_file
 from app.services.parsing.pipeline_context import IngestPipelineContext
+from app.observability.metrics import (
+    observe_ingest_stage,
+    record_embeddings_processed,
+    record_ingest_outcome,
+)
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -152,9 +157,18 @@ def _pipeline_ingest_document(session: Session, document: Document) -> dict[str,
 
     def _stage(name: str, fn) -> None:
         start = time.perf_counter()
-        fn()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        metrics[f"ingest_{name}_ms"] = round(elapsed_ms, 2)
+        stage_status = "ok"
+        try:
+            fn()
+        except Exception:
+            stage_status = "error"
+            raise
+        finally:
+            elapsed_s = time.perf_counter() - start
+            elapsed_ms = elapsed_s * 1000
+            metrics[f"ingest_{name}_ms"] = round(elapsed_ms, 2)
+            if settings.prometheus_enabled:
+                observe_ingest_stage(name, elapsed_s, status=stage_status)
 
     def antivirus() -> None:
         if not settings.clamav_enabled:
@@ -337,6 +351,8 @@ def ingest_document(self: Task, document_id: str) -> None:
                 "Documento %s ya estaba ingerido (READY con chunks); se omite reindex automático.",
                 document_id,
             )
+            if get_settings().prometheus_enabled:
+                record_ingest_outcome("skipped")
             return
 
         run = _start_ingestion_run(session, document)
@@ -359,6 +375,11 @@ def ingest_document(self: Task, document_id: str) -> None:
         try:
             metrics = _pipeline_ingest_document(session, document)
             _mark_run_succeeded(session, document, run, metrics)
+            if get_settings().prometheus_enabled:
+                record_ingest_outcome("succeeded")
+                embedded = int(metrics.get("embedding_count") or metrics.get("chunk_count") or 0)
+                if embedded:
+                    record_embeddings_processed(embedded)
             logger.info("Ingesta de documento %s finalizada con éxito.", document_id)
         except QuarantineError as e:
             _mark_run_failed(
@@ -369,6 +390,8 @@ def ingest_document(self: Task, document_id: str) -> None:
                 error_message=str(e),
                 document_status="QUARANTINED",
             )
+            if get_settings().prometheus_enabled:
+                record_ingest_outcome("quarantined")
             logger.warning(
                 "Documento %s puesto en cuarentena (firma=%s).",
                 document_id,
@@ -396,6 +419,8 @@ def ingest_document(self: Task, document_id: str) -> None:
                     backoff,
                 )
                 raise self.retry(exc=e, countdown=backoff) from e
+            if get_settings().prometheus_enabled:
+                record_ingest_outcome("failed")
             logger.error(
                 "Documento %s falló la ingesta tras %s intentos.",
                 document_id,
@@ -422,6 +447,8 @@ def ingest_document(self: Task, document_id: str) -> None:
                     backoff,
                 )
                 raise self.retry(exc=e, countdown=backoff) from e
+            if get_settings().prometheus_enabled:
+                record_ingest_outcome("failed")
             logger.exception(
                 "Documento %s falló la ingesta tras %s intentos por error inesperado.",
                 document_id,

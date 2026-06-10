@@ -29,6 +29,7 @@ dependencies = [
   "pytesseract>=0.3.13",
   "redis>=5.2",
   "sqlalchemy>=2.0",
+  "prometheus-client>=0.21",
   "python-socketio>=5.11",
   "uvicorn[standard]>=0.32",
 ]

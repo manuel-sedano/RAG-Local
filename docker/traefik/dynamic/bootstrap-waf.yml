@@ -36,8 +36,6 @@ http:
       rule: PathPrefix(`/grafana`)
       entryPoints:
         - web
-      middlewares:
-        - rag-grafana-stripprefix
       service: rag-grafana-svc
       priority: 80
     rag-frontend:
@@ -62,11 +60,6 @@ http:
       stripPrefix:
         prefixes:
           - /prometheus
-    rag-grafana-stripprefix:
-      stripPrefix:
-        prefixes:
-          - /grafana
-
   services:
     rag-backend-waf-svc:
       loadBalancer:

@@ -152,6 +152,8 @@ services:
     profiles:
       - observability
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - rag_net
     volumes:
@@ -179,13 +181,14 @@ services:
     networks:
       - rag_net
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin_local_dev
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_local_dev}
       GF_SERVER_ROOT_URL: http://localhost/grafana/
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - rag_vol_grafana:/var/lib/grafana
       - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/observability/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
     depends_on:
       - prometheus
       - loki
@@ -194,8 +197,7 @@ services:
       - traefik.docker.network=rag_net
       - traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)
       - traefik.http.routers.grafana.entrypoints=web
-      - traefik.http.middlewares.grafana-strip.stripprefix.prefixes=/grafana
-      - traefik.http.routers.grafana.middlewares=grafana-strip
+      # Sin stripprefix: Grafana usa GF_SERVER_SERVE_FROM_SUB_PATH con prefijo /grafana
       - traefik.http.services.grafana.loadbalancer.server.port=3000
 
   loki:

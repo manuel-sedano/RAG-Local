@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -27,6 +28,7 @@ from app.services.ollama import (
     fake_chat_completion,
     generate_chat_token_pieces,
 )
+from app.observability.metrics import observe_chat_phase, record_chat_message
 from app.services.retrieval import SearchFilters, hybrid_search
 from app.services.retrieval.types import SearchHit
 
@@ -153,6 +155,8 @@ def generate_chat_reply(
         session.add(assistant_msg)
         session.flush()
         touch_chat_updated_at(session, chat)
+        if settings.prometheus_enabled:
+            record_chat_message(mode="sync", status="blocked")
         return GeneratedReply(
             user_message=user_msg,
             assistant_message=assistant_msg,
@@ -162,9 +166,12 @@ def generate_chat_reply(
         )
 
     top_k = _effective_top_k(settings, rag)
+    retrieval_start = time.perf_counter()
     if is_conversational_message(content):
         hits: list[SearchHit] = []
         chunk_guard = filter_search_hits(hits, settings)
+        if settings.prometheus_enabled:
+            observe_chat_phase("retrieval", time.perf_counter() - retrieval_start, status="skipped")
     else:
         search_result = hybrid_search(
             session,
@@ -177,6 +184,8 @@ def generate_chat_reply(
             rerank=True,
         )
         chunk_guard = filter_search_hits(search_result.hits, settings)
+        if settings.prometheus_enabled:
+            observe_chat_phase("retrieval", time.perf_counter() - retrieval_start, status="ok")
 
     hits = chunk_guard.safe_hits
     safety_flags = build_safety_flags(chunk_guard=chunk_guard)
@@ -204,12 +213,16 @@ def generate_chat_reply(
     )
 
     _ = model  # reservado; Ollama usa settings.llm_model salvo override futuro
+    llm_start = time.perf_counter()
     assistant_text, usage = _invoke_llm(
         settings,
         messages=messages,
         user_query=content,
         hits=hits,
     )
+    if settings.prometheus_enabled:
+        observe_chat_phase("llm_total", time.perf_counter() - llm_start, status="ok")
+        record_chat_message(mode="sync", status="ok")
 
     rag_config: dict[str, Any] = {
         "top_k": top_k,

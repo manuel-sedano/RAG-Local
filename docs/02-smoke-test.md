@@ -154,21 +154,44 @@ pytest tests/test_waf_integration.py -v
 
 ## 7. Perfil **observability** (Prometheus, Grafana, Loki)
 
+**Backend real en host:** Prometheus scrapea `host.docker.internal:8000/metrics` (API uvicorn) y `:8001/metrics` (worker Celery). Arranca la API antes del smoke:
+
+```bash
+cd backend && source .venv/bin/activate
+uvicorn app.main:asgi_application --host 0.0.0.0 --port 8000
+```
+
+Smoke automatizado:
+
+```bash
+bash scripts/test-observability.sh
+# Con pytest: RUN_OBSERVABILITY_PYTEST=1 bash scripts/test-observability.sh
+```
+
 ```bash
 docker compose --profile observability up -d
 ```
+
+- **Métricas API** (`GET /metrics`):
+
+  ```bash
+  curl -fsS http://127.0.0.1:8000/metrics | head
+  ```
+
+  Debe incluir series `rag_http_requests_total`, `rag_ingest_stage_duration_seconds`, etc.
 
 - **Prometheus** (UI detrás de Traefik):
 
   ```bash
   curl -fsSI http://localhost/prometheus/
+  curl -fsS http://localhost/prometheus/api/v1/targets | head -c 500
   ```
 
-  Respuesta `200` o `302` a la UI.
+  Respuesta `200` o `302` a la UI; targets `rag-backend` / `rag-worker` en `up` si el backend/worker exponen métricas en el host.
 
 - **Grafana** (subruta `/grafana/`):
 
-  Abre en el navegador `http://localhost/grafana/` (usuario/contraseña por defecto del compose: `admin` / `admin_local_dev`; **cámbialos** fuera de entornos locales).
+  Abre `http://localhost/grafana/` (credenciales desde `.env`: `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`). Dashboard provisionado: **RAG Local — Overview**.
 
 - **Loki** (solo interno en este bootstrap):
 

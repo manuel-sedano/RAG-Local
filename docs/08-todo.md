@@ -565,23 +565,23 @@ Reglas:
 
 ### Feature branch: `feat/observability-metrics`
 
-- [ ] Backend:
-  - [ ] exponer `/metrics` (Prometheus)
-  - [ ] métricas por etapa:
-    - [ ] ingest parse/ocr/embed/upsert
-    - [ ] retrieval vector/bm25/rerank
-    - [ ] chat first-token/total
-  - [ ] labels: `kb_id` (cuidado privacidad), `status`, `endpoint`
-- [ ] Docker:
-  - [ ] prometheus config para scrape
-  - [ ] grafana datasource prometheus/loki
-- [ ] Dashboards:
-  - [ ] latencia API
-  - [ ] tasa de errores
-  - [ ] duración ingesta por etapa
-  - [ ] throughput de embeddings
-- [ ] Tests:
-  - [ ] verificar scrape y paneles visibles
+- [x] ~~Backend:~~
+  - [x] ~~exponer `/metrics` (Prometheus)~~ — `app/main.py` + `prometheus-client`; middleware HTTP en `prometheus_middleware.py`.
+  - [x] ~~métricas por etapa:~~
+    - [x] ~~ingest parse/ocr/embed/upsert~~ — `app/observability/metrics.py` + etapas en `ingest.py`; exporter worker en `celery_app.py`.
+    - [x] ~~retrieval vector/bm25/rerank~~ — `hybrid.py`, `rerank.py`.
+    - [x] ~~chat first-token/total~~ — `generation.py`, `streaming.py`.
+  - [x] ~~labels: `kb_id` (cuidado privacidad), `status`, `endpoint`~~ — `status`/`endpoint` en HTTP e ingesta; `kb_id` deshabilitado por defecto (`PROMETHEUS_INCLUDE_KB_ID_LABEL=false`).
+- [x] ~~Docker:~~
+  - [x] ~~prometheus config para scrape~~ — `docker/observability/prometheus.yml` (Traefik + `host.docker.internal:8000/8001`).
+  - [x] ~~grafana datasource prometheus/loki~~ — UIDs fijos + URL con prefijo `/prometheus`.
+- [x] ~~Dashboards:~~
+  - [x] ~~latencia API~~ — `rag-overview.json` (p95 por endpoint).
+  - [x] ~~tasa de errores~~ — panel ratio 5xx.
+  - [x] ~~duración ingesta por etapa~~ — `rag_ingest_stage_duration_seconds`.
+  - [x] ~~throughput de embeddings~~ — `rag_embeddings_processed_total`.
+- [x] ~~Tests:~~
+  - [x] ~~verificar scrape y paneles visibles~~ — `tests/test_prometheus_metrics.py` + `scripts/test-observability.sh`.
 
 ### Feature branch: `feat/observability-logs`
 

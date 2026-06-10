@@ -6,10 +6,15 @@ como desde otros módulos que quieran encolar tareas (`celery_app`).
 
 from __future__ import annotations
 
+import logging
+
 from celery import Celery
+from celery.signals import worker_ready
 from kombu import Queue
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_celery_app() -> Celery:
@@ -45,4 +50,24 @@ def create_celery_app() -> Celery:
 
 
 celery_app = create_celery_app()
+
+
+@worker_ready.connect
+def _start_worker_prometheus_exporter(**_kwargs: object) -> None:
+    """Expone /metrics en el proceso del worker (ingesta, embeddings)."""
+    settings = get_settings()
+    if not settings.prometheus_enabled or not settings.observability_enabled:
+        return
+    if settings.celery_task_always_eager:
+        return
+    try:
+        from prometheus_client import start_http_server
+
+        start_http_server(settings.worker_prometheus_port, addr="0.0.0.0")
+        logger.info(
+            "Prometheus worker exporter en :%s/metrics",
+            settings.worker_prometheus_port,
+        )
+    except OSError as e:
+        logger.warning("No se pudo iniciar exporter Prometheus del worker: %s", e)
 

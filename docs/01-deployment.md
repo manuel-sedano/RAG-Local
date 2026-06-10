@@ -318,14 +318,25 @@ docker compose exec backend wget -qO- http://ollama:11434/api/tags
 
 ### 8.5 Observabilidad (perfil `observability`)
 
-Levantar antes:
+El backend expone `GET /metrics` (Prometheus) cuando `PROMETHEUS_ENABLED=true`. El worker Celery publica el mismo path en `WORKER_PROMETHEUS_PORT` (default `8001`).
+
+Levantar API en host (mientras el servicio `backend` del compose siga siendo placeholder):
+
+```bash
+cd backend && source .venv/bin/activate
+uvicorn app.main:asgi_application --host 0.0.0.0 --port 8000
+```
+
+Stack de observabilidad:
 
 ```bash
 docker compose --profile observability up -d
+bash scripts/test-observability.sh
 ```
 
-- Grafana: `http://localhost/grafana/` (credenciales por defecto del compose; cámbialas fuera de entornos locales).
-- Prometheus: `http://localhost/prometheus/` (UI detrás de Traefik).
+- Métricas: `http://127.0.0.1:8000/metrics` (API) y `:8001/metrics` (worker).
+- Grafana: `http://localhost/grafana/` (`GRAFANA_ADMIN_*` en `.env`); dashboard **RAG Local — Overview**.
+- Prometheus: `http://localhost/prometheus/`; scrape de `host.docker.internal:8000` y `:8001`.
 - Loki: comprobar readiness por red interna (ver `docs/02-smoke-test.md`).
 
 ---

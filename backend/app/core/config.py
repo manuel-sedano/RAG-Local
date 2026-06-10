@@ -28,6 +28,29 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO")
 
+    observability_enabled: bool = Field(
+        default=True,
+        description="Habilita métricas Prometheus y export en worker (si aplica).",
+    )
+    prometheus_enabled: bool = Field(
+        default=True,
+        description="Expone GET /metrics y middleware HTTP de latencia.",
+    )
+    prometheus_metrics_path: str = Field(
+        default="/metrics",
+        description="Ruta de exposición Prometheus (también accesible vía Traefik si se enruta).",
+    )
+    prometheus_include_kb_id_label: bool = Field(
+        default=False,
+        description="Si true, añade hash corto de kb_id en métricas (privacidad: false por defecto).",
+    )
+    worker_prometheus_port: int = Field(
+        default=8001,
+        ge=1024,
+        le=65535,
+        description="Puerto HTTP del exporter Prometheus en el worker Celery.",
+    )
+
     cors_allow_origins: str = Field(
         default=(
             "http://localhost:3000,http://localhost,http://127.0.0.1:3000," "http://127.0.0.1"
@@ -463,6 +486,9 @@ class Settings(BaseSettings):
 
         if self.environment == "test":
             self.celery_task_always_eager = True
+            env_prom = os.environ.get("PROMETHEUS_ENABLED", "").strip().lower()
+            if env_prom in ("0", "false", "no", "off"):
+                self.prometheus_enabled = False
             env_clamav = os.environ.get("CLAMAV_ENABLED", "").strip().lower()
             if env_clamav not in ("1", "true", "yes", "on"):
                 self.clamav_enabled = False

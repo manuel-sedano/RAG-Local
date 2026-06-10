@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from starlette.responses import Response
 from sqlalchemy.orm import sessionmaker
 
 from app.api.routes.auth import router as auth_router
@@ -20,6 +22,7 @@ from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging_config import configure_logging
 from app.core.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.core.prometheus_middleware import PrometheusMiddleware
 from app.core.rate_limit_middleware import UserRateLimitMiddleware
 from app.core.security_access_log import (
     SecurityAccessLogMiddleware,
@@ -84,6 +87,8 @@ def create_app() -> FastAPI:
     register_error_handlers(application)
 
     application.add_middleware(RequestIdMiddleware)
+    if settings.prometheus_enabled:
+        application.add_middleware(PrometheusMiddleware, settings=settings)
     application.add_middleware(UserRateLimitMiddleware)
     if settings.fail2ban_security_log_enabled:
         application.add_middleware(SecurityAccessLogMiddleware)
@@ -102,6 +107,16 @@ def create_app() -> FastAPI:
     application.include_router(chats_router, prefix="/api")
     application.include_router(search_router, prefix="/api")
     application.include_router(documents_router, prefix="/api")
+
+    if settings.prometheus_enabled:
+
+        @application.get(
+            settings.prometheus_metrics_path,
+            include_in_schema=False,
+            tags=["observability"],
+        )
+        async def prometheus_metrics() -> Response:
+            return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @application.get("/")
     async def root() -> dict[str, str]:
