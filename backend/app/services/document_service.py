@@ -341,8 +341,11 @@ def status_payload(doc: Document) -> dict[str, Any]:
             "qdrant_upsert": pending,
         }
     elif doc.status == FAILED:
+        av_stage = done
+        if doc.error_message and "antivirus" in doc.error_message.lower():
+            av_stage = {"status": "FAILED", "duration_ms": 0}
         stages = {
-            "antivirus": done,
+            "antivirus": av_stage,
             "parse": pending,
             "ocr": skipped,
             "normalize": pending,

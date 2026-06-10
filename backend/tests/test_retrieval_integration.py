@@ -169,6 +169,20 @@ def test_search_bm25_viaticos(retrieval_client) -> None:
     assert body["metrics"]["rerank_backend"] == "fake"
 
 
+def test_search_overview_pdf_query(retrieval_client) -> None:
+    client, headers, kb_id, chunk_id, _doc_id = retrieval_client
+    resp = client.post(
+        f"/api/kbs/{kb_id}/search",
+        headers=headers,
+        json={"query": "de qué va el PDF", "top_k": 5, "hybrid": True},
+    )
+    assert resp.status_code == 200, resp.text
+    items = resp.json()["items"]
+    assert items
+    assert items[0]["chunk_id"] == str(chunk_id)
+    assert "viáticos" in items[0]["snippet"].lower() or "viaticos" in items[0]["snippet"].lower()
+
+
 def test_search_filter_tags(retrieval_client) -> None:
     client, headers, kb_id, chunk_id, _doc_id = retrieval_client
     resp = client.post(

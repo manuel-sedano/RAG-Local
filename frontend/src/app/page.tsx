@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 
+import { LoadingState } from "@/components/page-state";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { es } from "@/lib/i18n/es";
 import { useKnowledgeBases } from "@/lib/kb-context";
 
 export default function Home() {
@@ -11,22 +13,21 @@ export default function Home() {
   const { items, activeKbId, setActiveKbId, loading: kbLoading } = useKnowledgeBases();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">RAG Local</h1>
-      <p className="max-w-md text-center text-muted-foreground">
-        Frontend Next.js (App Router) — gestión de sesión y bases de conocimiento.
-      </p>
+    <main className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-2xl font-semibold tracking-tight">{es.app.name}</h1>
+      <p className="max-w-md text-center text-muted-foreground">{es.app.tagline}</p>
 
       {!ready ? (
-        <p className="text-sm text-muted-foreground">Cargando sesión…</p>
+        <LoadingState message={es.states.loadingSession} />
       ) : user ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-4">
           <p className="text-center text-sm">
-            Sesión como <span className="font-medium">{user.email}</span> ({user.role})
+            {es.home.sessionAs}{" "}
+            <span className="font-medium">{user.email}</span> ({user.role})
           </p>
           <div className="w-full space-y-1.5">
             <label htmlFor="home-kb-select" className="text-xs font-medium text-muted-foreground">
-              Base de conocimiento activa
+              {es.home.activeKb}
             </label>
             <select
               id="home-kb-select"
@@ -35,7 +36,7 @@ export default function Home() {
               disabled={kbLoading}
               onChange={(ev) => setActiveKbId(ev.target.value || null)}
             >
-              <option value="">— Ninguna —</option>
+              <option value="">{es.home.none}</option>
               {items.map((kb) => (
                 <option key={kb.id} value={kb.id}>
                   {kb.name}
@@ -44,9 +45,9 @@ export default function Home() {
             </select>
             {!kbLoading && items.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Aún no hay bases.{" "}
+                {es.home.noKbsHint}{" "}
                 <Link href="/kbs" className="font-medium text-foreground underline-offset-4 hover:underline">
-                  Crear una en «Bases de conocimiento»
+                  {es.home.noKbsLink}
                 </Link>
                 .
               </p>
@@ -54,32 +55,31 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Button asChild variant="secondary">
-              <Link href="/kbs">Bases de conocimiento</Link>
+              <Link href="/kbs">{es.nav.manageKbs}</Link>
             </Button>
             {activeKbId ? (
               <>
                 <Button asChild>
-                  <Link href={`/kbs/${activeKbId}/documents`}>Documentos</Link>
+                  <Link href={`/kbs/${activeKbId}/documents`}>{es.nav.documents}</Link>
                 </Button>
                 <Button asChild>
-                  <Link href={`/kbs/${activeKbId}/chats`}>Chat</Link>
+                  <Link href={`/kbs/${activeKbId}/chats`}>{es.nav.chat}</Link>
                 </Button>
               </>
             ) : null}
             <Button type="button" variant="outline" onClick={() => void logout()}>
-              Cerrar sesión
+              {es.nav.logout}
             </Button>
           </div>
         </div>
       ) : (
         <Button asChild>
-          <Link href="/login">Iniciar sesión</Link>
+          <Link href="/login">{es.nav.login}</Link>
         </Button>
       )}
 
       <p className="max-w-md text-center text-xs text-muted-foreground">
-        El API debe tener CORS con el origen de esta app (p. ej. <code className="rounded bg-muted px-1">http://localhost:3000</code>
-        ).
+        {es.home.corsHint}
       </p>
     </main>
   );

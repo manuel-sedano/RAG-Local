@@ -15,6 +15,7 @@ from app.models.document import Chunk, Document
 from app.services.embeddings import embed_texts
 from app.services.qdrant import search_chunks
 from app.services.retrieval.bm25_index import bm25_search, refresh_kb_bm25_index
+from app.services.retrieval.fallback import overview_fallback_hits, should_use_overview_fallback
 from app.services.retrieval.filters import candidate_from_payload, enrich_candidate_from_db, matches_filters
 from app.services.retrieval.fusion import log_fusion_debug, reciprocal_rank_fusion
 from app.observability.metrics import observe_retrieval
@@ -253,7 +254,30 @@ def hybrid_search(
     else:
         return SearchResult(hits=[])
 
-    return _apply_rerank(q, hits, settings, use_rerank=use_rerank, final_limit=final_limit)
+    result = _apply_rerank(q, hits, settings, use_rerank=use_rerank, final_limit=final_limit)
+    if result.hits:
+        return result
+
+    if should_use_overview_fallback(session, q, kb_id, settings):
+        fallback_hits = overview_fallback_hits(
+            session,
+            settings,
+            kb_id=kb_id,
+            limit=final_limit,
+            filters=filters,
+        )
+        if fallback_hits:
+            logger.info(
+                "Retrieval overview fallback kb_id=%s query=%r hits=%s",
+                kb_id,
+                q[:80],
+                len(fallback_hits),
+            )
+            return SearchResult(
+                hits=fallback_hits[:final_limit],
+                rerank_status="fallback_overview",
+            )
+    return result
 
 
 def _hits_from_candidates(

@@ -5,7 +5,7 @@ import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
   title: "RAG Local",
-  description: "Plataforma RAG local — frontend dev tooling",
+  description: "Plataforma RAG local — consulta documentos con IA",
 };
 
 export default function RootLayout({

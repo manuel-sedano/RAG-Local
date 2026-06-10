@@ -1,28 +1,39 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Download, Loader2, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { DocumentFilters, type DocumentFilterState } from "@/components/document-filters";
 import { DocumentUploadZone } from "@/components/document-upload-zone";
+import { EmptyState, ErrorState, LoadingState } from "@/components/page-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatApiError } from "@/lib/api-errors";
 import { api } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
+import { mimeShortLabel } from "@/lib/document-mime";
 import {
   deleteDocument,
+  documentViewerPath,
   downloadDocumentFile,
-  getDocumentStatus,
   listDocuments,
+  normalizeDocumentTags,
   type DocumentListItemDto,
-  type DocumentStatusDto,
 } from "@/lib/documents-api";
+import { useAuth } from "@/lib/auth-context";
+import { es } from "@/lib/i18n/es";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const DEFAULT_FILTERS: DocumentFilterState = {
+  status: "",
+  mimeType: "",
+  tagsQuery: "",
+  sourceQuery: "",
+};
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -44,6 +55,26 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function applyClientFilters(
+  items: DocumentListItemDto[],
+  filters: DocumentFilterState,
+): DocumentListItemDto[] {
+  const tagQ = filters.tagsQuery.trim().toLowerCase();
+  const srcQ = filters.sourceQuery.trim().toLowerCase();
+  return items.filter((doc) => {
+    if (filters.mimeType && doc.mime_type !== filters.mimeType) return false;
+    if (tagQ) {
+      const tags = normalizeDocumentTags(doc.tags).map((t) => t.toLowerCase());
+      if (!tags.some((t) => t.includes(tagQ))) return false;
+    }
+    if (srcQ) {
+      const src = (doc.source ?? "").toLowerCase();
+      if (!src.includes(srcQ)) return false;
+    }
+    return true;
+  });
+}
+
 export default function KbDocumentsPage() {
   const params = useParams<{ kbId: string }>();
   const router = useRouter();
@@ -52,7 +83,7 @@ export default function KbDocumentsPage() {
 
   const invalidKbIdMessage = React.useMemo(() => {
     if (UUID_RE.test(kbId)) return null;
-    return "Identificador de base de conocimiento no válido.";
+    return es.states.errorInvalidKbId;
   }, [kbId]);
 
   const [kbName, setKbName] = React.useState<string | null>(null);
@@ -60,8 +91,7 @@ export default function KbDocumentsPage() {
   const [items, setItems] = React.useState<DocumentListItemDto[]>([]);
   const [listLoading, setListLoading] = React.useState(true);
   const [autoPoll, setAutoPoll] = React.useState(true);
-  const [stagesOpenId, setStagesOpenId] = React.useState<string | null>(null);
-  const [stagesById, setStagesById] = React.useState<Record<string, DocumentStatusDto | "loading">>({});
+  const [filters, setFilters] = React.useState<DocumentFilterState>(DEFAULT_FILTERS);
 
   const validId = UUID_RE.test(kbId);
 
@@ -69,14 +99,17 @@ export default function KbDocumentsPage() {
     if (!validId) return;
     setListLoading(true);
     try {
-      const data = await listDocuments(kbId);
+      const data = await listDocuments(kbId, {
+        status: filters.status || undefined,
+        limit: 100,
+      });
       setItems(data.items);
     } catch (e: unknown) {
-      toast.error(formatApiError(e, "No se pudo cargar la lista de documentos."));
+      toast.error(formatApiError(e, es.states.errorLoadDocuments));
     } finally {
       setListLoading(false);
     }
-  }, [kbId, validId]);
+  }, [kbId, validId, filters.status]);
 
   React.useEffect(() => {
     if (!ready || !user) {
@@ -95,7 +128,7 @@ export default function KbDocumentsPage() {
       } catch (e: unknown) {
         if (!cancelled) {
           setKbName(null);
-          setKbError(formatApiError(e, "No tienes acceso a esta base o no existe."));
+          setKbError(formatApiError(e, es.states.errorKbAccess));
         }
       }
     })();
@@ -108,6 +141,11 @@ export default function KbDocumentsPage() {
     if (!ready || !user || invalidKbIdMessage || kbError) return;
     void Promise.resolve().then(() => loadList());
   }, [ready, user, invalidKbIdMessage, kbError, loadList]);
+
+  const filteredItems = React.useMemo(
+    () => applyClientFilters(items, filters),
+    [items, filters],
+  );
 
   const needsStatusPoll = React.useMemo(
     () => items.some((d) => d.status === "UPLOADED" || d.status === "PROCESSING"),
@@ -124,223 +162,165 @@ export default function KbDocumentsPage() {
   }, [autoPoll, needsStatusPoll, loadList, invalidKbIdMessage, kbError]);
 
   async function onDelete(doc: DocumentListItemDto) {
-    const ok = window.confirm(`¿Eliminar «${doc.filename_original}»?`);
+    const ok = window.confirm(es.documents.deleteConfirm.replace("{name}", doc.filename_original));
     if (!ok) return;
-    const tid = toast.loading("Eliminando…");
+    const tid = toast.loading(es.documents.deleting);
     try {
       await deleteDocument(kbId, doc.id);
       toast.dismiss(tid);
-      toast.success("Documento eliminado.");
+      toast.success(es.documents.deletedOk);
       await loadList();
     } catch (e: unknown) {
       toast.dismiss(tid);
-      toast.error(formatApiError(e, "No se pudo eliminar."));
+      toast.error(formatApiError(e, es.documents.deleteError));
     }
   }
 
   async function onDownload(doc: DocumentListItemDto) {
-    const tid = toast.loading("Descargando…");
+    const tid = toast.loading(es.documents.downloading);
     try {
       await downloadDocumentFile(kbId, doc.id, doc.filename_original);
       toast.dismiss(tid);
     } catch (e: unknown) {
       toast.dismiss(tid);
-      toast.error(formatApiError(e, "No se pudo descargar."));
-    }
-  }
-
-  async function toggleStages(docId: string) {
-    if (stagesOpenId === docId) {
-      setStagesOpenId(null);
-      return;
-    }
-    setStagesOpenId(docId);
-    if (stagesById[docId] && stagesById[docId] !== "loading") {
-      return;
-    }
-    setStagesById((prev) => ({ ...prev, [docId]: "loading" }));
-    try {
-      const st = await getDocumentStatus(kbId, docId);
-      setStagesById((prev) => ({ ...prev, [docId]: st }));
-    } catch (e: unknown) {
-      setStagesById((prev) => {
-        const next = { ...prev };
-        delete next[docId];
-        return next;
-      });
-      setStagesOpenId(null);
-      toast.error(formatApiError(e, "No se pudo cargar el estado detallado."));
+      toast.error(formatApiError(e, es.documents.downloadError));
     }
   }
 
   if (!ready || !user) {
-    return (
-      <main className="flex min-h-[100dvh] items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
-      </main>
-    );
+    return <LoadingState fullPage message={es.states.loadingSession} />;
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-4xl flex-col gap-8 p-6 pb-16">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
-          <p className="text-sm text-muted-foreground">
-            {invalidKbIdMessage ? (
-              <span className="text-destructive">{invalidKbIdMessage}</span>
-            ) : kbName ? (
-              <>
-                Base: <span className="font-medium text-foreground">{kbName}</span>
-              </>
-            ) : kbError ? (
-              <span className="text-destructive">{kbError}</span>
-            ) : (
-              "Cargando…"
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/kbs">Volver a bases</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/">Inicio</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-4 pb-12 sm:p-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{es.documents.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          {invalidKbIdMessage ? (
+            <span className="text-destructive">{invalidKbIdMessage}</span>
+          ) : kbName ? (
+            <>
+              {es.documents.kbPrefix}{" "}
+              <span className="font-medium text-foreground">{kbName}</span>
+            </>
+          ) : kbError ? (
+            <span className="text-destructive">{kbError}</span>
+          ) : (
+            es.states.loadingKb
+          )}
+        </p>
+      </header>
 
-      {invalidKbIdMessage || kbError ? null : validId ? (
+      {invalidKbIdMessage ? (
+        <ErrorState message={invalidKbIdMessage} />
+      ) : kbError ? (
+        <ErrorState message={kbError} onRetry={() => window.location.reload()} />
+      ) : validId ? (
         <>
           <DocumentUploadZone kbId={kbId} disabled={!!kbError} onUploaded={() => void loadList()} />
 
           <Card>
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="text-lg">Archivos en esta KB</CardTitle>
-                <CardDescription>
-                  La lista se refresca al subir o borrar. Con documentos en proceso, la actualización automática
-                  consulta el servidor cada 5 s.
-                </CardDescription>
+            <CardHeader className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-lg">{es.documents.listTitle}</CardTitle>
+                  <CardDescription>{es.documents.listHint}</CardDescription>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={autoPoll}
+                    onChange={(ev) => setAutoPoll(ev.target.checked)}
+                    className="rounded border-input"
+                  />
+                  {es.documents.autoPoll}
+                </label>
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={autoPoll}
-                  onChange={(ev) => setAutoPoll(ev.target.checked)}
-                  className="rounded border-input"
-                />
-                Auto-actualizar si hay ingesta en curso
-              </label>
+              <DocumentFilters value={filters} onChange={setFilters} />
             </CardHeader>
             <CardContent>
               {listLoading && items.length === 0 ? (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  Cargando documentos…
-                </p>
-              ) : items.length === 0 ? (
-                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  Aún no hay documentos. Sube un PDF, DOCX o TXT arriba.
-                </p>
+                <LoadingState message={es.states.loadingDocuments} />
+              ) : filteredItems.length === 0 ? (
+                <EmptyState
+                  title={es.states.emptyDocumentsTitle}
+                  description={
+                    items.length > 0 ? es.documents.noFilterMatch : es.states.emptyDocumentsDesc
+                  }
+                />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] border-collapse text-sm">
+                  <table className="w-full min-w-[720px] border-collapse text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
-                        <th className="py-2 pr-2 font-medium">Nombre</th>
-                        <th className="py-2 pr-2 font-medium">Tipo</th>
-                        <th className="py-2 pr-2 font-medium">Tamaño</th>
-                        <th className="py-2 pr-2 font-medium">Estado</th>
-                        <th className="py-2 pr-2 font-medium">Acciones</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colName}</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colType}</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colTags}</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colSize}</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colStatus}</th>
+                        <th className="py-2 pr-2 font-medium">{es.documents.colActions}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {items.map((doc) => {
-                        const ex = stagesOpenId === doc.id ? stagesById[doc.id] : undefined;
-                        return (
-                          <React.Fragment key={doc.id}>
-                            <tr className="border-b border-border/60">
-                              <td className="max-w-[220px] truncate py-2 pr-2 font-medium" title={doc.filename_original}>
-                                {doc.filename_original}
-                              </td>
-                              <td className="whitespace-nowrap py-2 pr-2 text-muted-foreground">{doc.mime_type}</td>
-                              <td className="whitespace-nowrap py-2 pr-2">{formatBytes(doc.size_bytes)}</td>
-                              <td className="py-2 pr-2">
-                                <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(doc.status)}`}
-                                >
-                                  {doc.status}
-                                </span>
-                              </td>
-                              <td className="py-2 pr-2">
-                                <div className="flex flex-wrap gap-1">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 gap-1 px-2"
-                                    onClick={() => void toggleStages(doc.id)}
-                                  >
-                                    {stagesOpenId === doc.id ? (
-                                      <ChevronDown className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <ChevronRight className="h-3.5 w-3.5" />
-                                    )}
-                                    Etapas
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 gap-1 px-2"
-                                    onClick={() => void onDownload(doc)}
-                                    disabled={doc.status === "QUARANTINED"}
-                                    title={doc.status === "QUARANTINED" ? "En cuarentena" : "Descargar"}
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="destructive"
-                                    className="h-8 gap-1 px-2"
-                                    onClick={() => void onDelete(doc)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                            {ex ? (
-                              <tr className="border-b border-border/40 bg-muted/30">
-                                <td colSpan={5} className="px-2 py-3">
-                                  {ex === "loading" ? (
-                                    <span className="flex items-center gap-2 text-muted-foreground">
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      Cargando etapas…
-                                    </span>
-                                  ) : (
-                                    <ul className="grid gap-1 text-xs sm:grid-cols-2">
-                                      {Object.entries(ex.stages).map(([k, v]) => (
-                                        <li key={k}>
-                                          <span className="font-medium">{k}</span>: {v.status}
-                                          {v.duration_ms ? ` (${v.duration_ms} ms)` : ""}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                  {ex !== "loading" && ex.error ? (
-                                    <p className="mt-2 text-destructive">
-                                      {ex.error.code}: {ex.error.message ?? "—"}
-                                    </p>
-                                  ) : null}
-                                </td>
-                              </tr>
-                            ) : null}
-                          </React.Fragment>
-                        );
-                      })}
+                      {filteredItems.map((doc) => (
+                        <tr key={doc.id} className="border-b border-border/60">
+                          <td className="max-w-[200px] py-2 pr-2">
+                            <Link
+                              href={documentViewerPath(kbId, doc.id)}
+                              className="inline-flex items-center gap-1 font-medium hover:underline"
+                              title={doc.filename_original}
+                            >
+                              <span className="truncate">{doc.filename_original}</span>
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap py-2 pr-2 text-muted-foreground">
+                            {mimeShortLabel(doc.mime_type)}
+                          </td>
+                          <td className="max-w-[120px] truncate py-2 pr-2 text-xs text-muted-foreground">
+                            {normalizeDocumentTags(doc.tags).join(", ") || "—"}
+                          </td>
+                          <td className="whitespace-nowrap py-2 pr-2">{formatBytes(doc.size_bytes)}</td>
+                          <td className="py-2 pr-2">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(doc.status)}`}
+                            >
+                              {doc.status}
+                            </span>
+                          </td>
+                          <td className="py-2 pr-2">
+                            <div className="flex flex-wrap gap-1">
+                              <Button asChild size="sm" variant="ghost" className="h-8 px-2">
+                                <Link href={documentViewerPath(kbId, doc.id)}>{es.documents.view}</Link>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1 px-2"
+                                onClick={() => void onDownload(doc)}
+                                disabled={doc.status === "QUARANTINED"}
+                                title={
+                                  doc.status === "QUARANTINED"
+                                    ? es.documents.quarantined
+                                    : es.documents.download
+                                }
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                className="h-8 gap-1 px-2"
+                                onClick={() => void onDelete(doc)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -349,6 +329,6 @@ export default function KbDocumentsPage() {
           </Card>
         </>
       ) : null}
-    </main>
+    </div>
   );
 }

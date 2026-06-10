@@ -16,6 +16,29 @@ Copia `frontend/.env.example` a `frontend/.env.local` y define la URL del API:
 
 El backend debe permitir el origen del front en `CORS_ALLOW_ORIGINS` (p. ej. `http://localhost:3000`).
 
+## Layout (shell de la app)
+
+Rutas bajo `/kbs/[kbId]/` usan un **workspace layout**:
+
+- **Cabecera:** selector de KB (`KbSelector`) + gestión de sesión.
+- **Sidebar (md+):** pestañas Documentos / Chat y lista contextual (docs o conversaciones).
+- **Panel chat (xl, en documentos):** acceso rápido a chats recientes.
+- **Estados reutilizables:** `LoadingState`, `EmptyState`, `ErrorState` en `src/components/page-state.tsx`.
+- **i18n mínimo:** cadenas en español en `src/lib/i18n/es.ts`.
+
+Prueba automática del layout: desde la raíz del repo, `bash scripts/test-frontend-layout.sh`.
+
+## Documentos (filtros, detalle, visor PDF)
+
+Rutas:
+
+- Lista: `/kbs/{kbId}/documents` — filtros estado/tipo/tags/origen, enlace al detalle.
+- Detalle: `/kbs/{kbId}/documents/{docId}?page=N` — metadatos, etapas, reindex, visor PDF.js (auth Bearer) o texto TXT.
+
+Dependencia: `pdfjs-dist`. Progreso de ingesta vía Socket.IO (`ingest:progress`) y polling.
+
+Prueba: `bash scripts/test-frontend-documents.sh` (lint + build).
+
 ## Desarrollo
 
 ```bash
@@ -23,7 +46,7 @@ npm install
 npm run dev
 ```
 
-Abre `http://localhost:3000`. Ruta de login: `/login`.
+Abre `http://localhost:3000`. Ruta de login: `/login`. Con sesión y KB activa: `/kbs/{kbId}/documents`.
 
 ## Probar login
 

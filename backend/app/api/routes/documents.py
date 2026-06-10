@@ -72,6 +72,8 @@ class DocumentListItem(BaseModel):
     status: str
     page_count: int | None
     chunk_count: int | None
+    tags: list[Any] | dict[str, Any] | None = None
+    source: str | None = None
     created_at: str
 
 
@@ -309,6 +311,8 @@ def get_documents(
             status=r.status,
             page_count=r.page_count,
             chunk_count=r.chunk_count,
+            tags=r.tags,
+            source=r.source,
             created_at=_iso_z(r.created_at),
         )
         for r in rows

@@ -111,3 +111,33 @@ def test_bm25_favors_exact_proper_noun() -> None:
     hits = bm25_search(kb_id, "NOM-035", top_k=5, settings=settings)
     assert hits
     assert hits[0][0].doc_id == doc_nom
+
+
+def test_bm25_returns_chunk_when_scores_are_zero() -> None:
+    from rank_bm25 import BM25Okapi
+
+    from app.services.retrieval.bm25_index import _get_or_create_index
+
+    settings = _settings()
+    kb_id = uuid.uuid4()
+    chunk_id = uuid.uuid4()
+    idx = _get_or_create_index(kb_id)
+    text = "El informe describe la estrategia comercial de la empresa."
+    idx.candidates[chunk_id] = ChunkCandidate(
+        chunk_id=chunk_id,
+        doc_id=uuid.uuid4(),
+        kb_id=kb_id,
+        text=text,
+        page_start=1,
+        page_end=1,
+        mime_type="application/pdf",
+        tags=[],
+        source="informe.pdf",
+    )
+    idx.corpus_ids = [chunk_id]
+    idx.tokenized_corpus = [tokenize(text)]
+    idx.bm25 = BM25Okapi(idx.tokenized_corpus)
+
+    hits = bm25_search(kb_id, "de qué va el PDF", top_k=5, settings=settings)
+    assert len(hits) == 1
+    assert hits[0][0].chunk_id == chunk_id

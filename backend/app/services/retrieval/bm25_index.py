@@ -150,4 +150,10 @@ def bm25_search(
         if score <= 0 and out:
             continue
         out.append((cand, float(score)))
+
+    if not out and index.corpus_ids and query_tokens:
+        for chunk_id in index.corpus_ids[:top_k]:
+            cand = index.candidates.get(chunk_id)
+            if cand is not None:
+                out.append((cand, 0.0))
     return out

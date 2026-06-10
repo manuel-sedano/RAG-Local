@@ -168,6 +168,55 @@ def test_post_message_with_context_and_citations(chat_rag_client: tuple) -> None
     assert "/api/kbs/" in cite["file_path"]
 
 
+def test_post_message_overview_pdf_query(chat_rag_client: tuple) -> None:
+    client, email, pwd = chat_rag_client
+    token = _login(client, email, pwd)
+    headers = {"Authorization": f"Bearer {token}"}
+    kb_id, chat_id = _create_kb_and_chat(client, headers)
+
+    engine = create_engine(os.environ["DATABASE_URL"])
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    settings = get_settings()
+    with SessionLocal() as db:
+        doc = Document(
+            kb_id=uuid.UUID(kb_id),
+            filename_original="informe.pdf",
+            storage_path=f"{kb_id}/informe.pdf",
+            mime_type="application/pdf",
+            size_bytes=200,
+            sha256=uuid.uuid4().hex + uuid.uuid4().hex,
+            tags=["general"],
+            status="READY",
+        )
+        db.add(doc)
+        db.flush()
+        chunk = Chunk(
+            document_id=doc.id,
+            kb_id=doc.kb_id,
+            chunk_index=0,
+            text="El informe presenta la estrategia comercial y los objetivos para el próximo año.",
+            page_start=1,
+            page_end=1,
+            qdrant_point_id=str(uuid.uuid4()),
+            embedding_model="fake",
+        )
+        db.add(chunk)
+        db.commit()
+        refresh_kb_bm25_index(db, uuid.UUID(kb_id), settings)
+    engine.dispose()
+
+    r = client.post(
+        f"/api/kbs/{kb_id}/chats/{chat_id}/messages",
+        headers=headers,
+        json={"content": "de qué va el PDF", "stream": False},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["role"] == "assistant"
+    assert "evidencia" not in body["content"].lower()
+    assert len(body["citations"]) >= 1
+
+
 def test_post_message_stream_returns_202(chat_rag_client: tuple) -> None:
     client, email, pwd = chat_rag_client
     token = _login(client, email, pwd)
